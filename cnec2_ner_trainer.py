@@ -8,16 +8,27 @@ import requests
 import zipfile
 from sklearn.metrics import f1_score
 
+import argparse
+from yaml import safe_load
+
+from accelerator import Accelerator
+
 from torch.utils.data import TensorDataset, random_split, DataLoader, RandomSampler, SequentialSampler
-from transformers import BertTokenizer, BertForTokenClassification, AdamW, get_linear_schedule_with_warmup
-import csv
+from transformers import BertTokenizer, BertForTokenClassification, AdamW, get_scheduler # get_linear_schedule_with_warmup
 import torch
 
 
-def get_dataset():
-    url = 'https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-3493/cnec2.0_extended.zip'
+# https://github.com/roman-janik/diploma_thesis_program/blob/a23bfaa34d32f92cd17dc8b087ad97e9f5f0f3e6/train_ner_model.py#L28
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', required=True, help='Training configuration file.')
+    # parser.add_argument('--results_csv', required=True, help='Results CSV file.')
+    args = parser.parse_args()
+    return args
 
-    response = requests.get(url)
+
+def get_dataset(url_path):
+    response = requests.get(url_path)
     zip_file = zipfile.ZipFile(BytesIO(response.content))
 
     root_dir = 'cnec2.0_extended/'
@@ -105,7 +116,7 @@ def get_attention_mask(conllu_sentences):
             sent_str,
             add_special_tokens=True,
             truncation=True,
-            max_length=120,
+            max_length=120, # TODO nastavit max_length
             pad_to_max_length=True,
             return_attention_mask=True,
             return_tensors='pt',
@@ -153,17 +164,28 @@ def get_new_labels(in_ids, lbls, lbll_map):
 
 
 if __name__ == '__main__':
+    model_dir = "../results/model"
+
+    args = parse_arguments()
+
+    # Load a config file.
+    with open(args.config, 'r') as config_file:
+        config = safe_load(config_file)
+
     device = get_device()
 
-    dataset_files = get_dataset()
+    dataset_files = get_dataset(config["datasets"]["cnec2"]["url_path"])
     sentences = parse(dataset_files["train.conll"])
+    # TODO zobecnit tokenizer, aby se dal nacitat i ulozeny z configu jiz castecne natrenovany tokenizer.
+    # TODO jestli nekecam, jestli se pomoci accelerator opravdu tokenizer uklada (trenuje).
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-    # print(conllu_to_string(sentences[0]))
-    # TokenLength = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True)) for i in sentences]
-    # print(TokenLength)
-    # print('Minimum  length: {:,} tokens'.format(min(TokenLength)))
-    # print('Maximum length: {:,} tokens'.format(max(TokenLength)))
-    # print('Median length: {:,} tokens'.format(int(np.median(TokenLength))))
+    
+    print(conllu_to_string(sentences[0]))
+    TokenLength = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True)) for i in sentences]
+    print(TokenLength)
+    print('Minimum  length: {:,} tokens'.format(min(TokenLength)))
+    print('Maximum length: {:,} tokens'.format(max(TokenLength)))
+    print('Median length: {:,} tokens'.format(int(np.median(TokenLength))))
 
     labels = get_labels(sentences)
     unique_labels = get_unique_labels(sentences)
@@ -188,32 +210,68 @@ if __name__ == '__main__':
     print('{:>5,} training samples'.format(train_size))
     print('{:>5,} validation samples'.format(val_size))
 
-    batch_size = 32
+    batch_size = config["training"]["batch_size"]
 
     train_dataloader = DataLoader(train_dataset, sampler=RandomSampler(train_dataset), batch_size=batch_size)
-    validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset), batch_size=batch_size)
+    # TODO why is unused @Zido? Is it needed?
+    validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset), batch_size=batch_size)    
 
+    # Test data.
+    test_sentences = parse(dataset_files["test.conll"])
+    test_labels = get_labels(test_sentences)
+    test_unique_labels = get_unique_labels(test_sentences)
+    test_label_map = get_labels_map(test_unique_labels)
+    test_attention_masks, test_input_ids = get_attention_mask(test_sentences)
+    test_new_labels = get_new_labels(test_input_ids, test_labels, test_label_map)
+
+    test_pt_input_ids = torch.stack(input_ids, dim=0)
+    test_pt_attention_masks = torch.stack(attention_masks, dim=0)
+    test_pt_labels = torch.tensor(new_labels, dtype=torch.long)
+
+    batch_size = 32
+
+    test_prediction_data = TensorDataset(test_pt_input_ids, test_pt_attention_masks, test_pt_labels)
+    test_prediction_sampler = SequentialSampler(test_prediction_data)
+    test_prediction_dataloader = DataLoader(test_prediction_data, sampler=test_prediction_sampler, batch_size=batch_size)
+
+    # Model.
+    # TODO zobecnit model, aby se dal nacitat i ulozeny z configu jiz castecne natrenovany model.
     model = BertForTokenClassification.from_pretrained("bert-base-uncased", num_labels=len(label_map) + 1,
                                                        output_attentions=False, output_hidden_states=False)
     model.cuda()
 
     # Load the AdamW optimizer
+    config_optimizer = config["training"]["optimizer"]
     optimizer = AdamW(model.parameters(),
-                      lr=5e-5,  # args.learning_rate
-                      eps=1e-8  # args.adam_epsilon
+                      lr=config_optimizer["learning_rate"],
+                      betas=(config_optimizer["beta1"], config_optimizer["beta2"]),
+                      eps=config_optimizer["eps"],
+                      weight_decay=config_optimizer["weight_decay"],
+                      amsgrad=config_optimizer["amsgrad"]
                       )
 
     # Number of training epochs
-    epochs = 4
+    epochs = config["training"]["num_train_epochs"]
 
     # Total number of training steps is number of batches * number of epochs.
-    total_steps = len(train_dataloader) * epochs
+    num_training_steps = len(train_dataloader) * epochs
 
     # Create the learning rate scheduler.
-    scheduler = get_linear_schedule_with_warmup(optimizer,
-                                                num_warmup_steps=0,
-                                                num_training_steps=total_steps)
+    config_scheduler = config["training"]["lr_scheduler"]    
+    scheduler = get_scheduler(
+        config_scheduler["name"],
+        optimizer=optimizer,
+        num_warmup_steps=int(config_scheduler["num_warmup_steps"] * num_training_steps),
+        num_training_steps=num_training_steps
+    )
 
+    accelerator = Accelerator()
+
+    model, optimizer, train_dataloader, test_prediction_dataloader, scheduler = accelerator.prepare(
+        model, optimizer, train_dataloader, test_prediction_dataloader, scheduler
+    )
+
+    # Setting the random seed for reproducibility, etc.
     seed_val = 42
 
     random.seed(seed_val)
@@ -250,7 +308,8 @@ if __name__ == '__main__':
 
             total_loss += loss.item()
 
-            loss.backward()
+            # loss.backward()
+            accelerator.backward(loss)
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
@@ -263,25 +322,15 @@ if __name__ == '__main__':
 
         print("  Average training loss: {0:.2f}".format(avg_train_loss))
 
-        # Testing
+    # Saving model.
+    # https://huggingface.co/course/en/chapter7/2?fw=pt
+    accelerator.wait_for_everyone()
+    unwrapped_model = accelerator.unwrap_model(model)
+    unwrapped_model.save_pretrained(model_dir, save_function=accelerator.save)
+    if accelerator.is_main_process:
+        tokenizer.save_pretrained(model_dir)
 
-    test_sentences = parse(dataset_files["test.conll"])
-    test_labels = get_labels(test_sentences)
-    test_unique_labels = get_unique_labels(test_sentences)
-    test_label_map = get_labels_map(test_unique_labels)
-    test_attention_masks, test_input_ids = get_attention_mask(test_sentences)
-    test_new_labels = get_new_labels(test_input_ids, test_labels, test_label_map)
-
-    test_pt_input_ids = torch.stack(input_ids, dim=0)
-    test_pt_attention_masks = torch.stack(attention_masks, dim=0)
-    test_pt_labels = torch.tensor(new_labels, dtype=torch.long)
-
-    batch_size = 32
-
-    test_prediction_data = TensorDataset(test_pt_input_ids, test_pt_attention_masks, test_pt_labels)
-    test_prediction_sampler = SequentialSampler(test_prediction_data)
-    test_prediction_dataloader = DataLoader(test_prediction_data, sampler=test_prediction_sampler, batch_size=batch_size)
-
+    # Testing
     print('Predicting labels for {:,} test sentences...'.format(len(pt_input_ids)))
 
     # Put model in evaluation mode
@@ -290,6 +339,8 @@ if __name__ == '__main__':
     # Tracking variables
     predictions, true_labels = [], []
 
+    # TODO jestli pouzit accelerator i v evaluations
+    # https://github.com/roman-janik/diploma_thesis_program/blob/main/train_ner_model.py#L259
     # Predict
     for batch in test_prediction_dataloader:
         # Add batch to GPU
