@@ -14,7 +14,7 @@ from yaml import safe_load
 from accelerator import Accelerator
 
 from torch.utils.data import TensorDataset, random_split, DataLoader, RandomSampler, SequentialSampler
-from transformers import BertTokenizer, BertForTokenClassification, AdamW, get_scheduler # get_linear_schedule_with_warmup
+from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, get_scheduler # get_linear_schedule_with_warmup
 import torch
 
 
@@ -176,9 +176,11 @@ if __name__ == '__main__':
 
     dataset_files = get_dataset(config["datasets"]["cnec2"]["url_path"])
     sentences = parse(dataset_files["train.conll"])
-    # TODO zobecnit tokenizer, aby se dal nacitat i ulozeny z configu jiz castecne natrenovany tokenizer.
-    # TODO jestli nekecam, jestli se pomoci accelerator opravdu tokenizer uklada (trenuje).
-    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+    
+    # TODO pridat nacitani ulozeneho stavu natrenovaneho modelu z checkpointu (accelerator)
+
+    # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+    tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])
     
     print(conllu_to_string(sentences[0]))
     TokenLength = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True)) for i in sentences]
@@ -235,9 +237,10 @@ if __name__ == '__main__':
     test_prediction_dataloader = DataLoader(test_prediction_data, sampler=test_prediction_sampler, batch_size=batch_size)
 
     # Model.
-    # TODO zobecnit model, aby se dal nacitat i ulozeny z configu jiz castecne natrenovany model.
-    model = BertForTokenClassification.from_pretrained("bert-base-uncased", num_labels=len(label_map) + 1,
-                                                       output_attentions=False, output_hidden_states=False)
+    # model = BertForTokenClassification.from_pretrained("bert-base-uncased", num_labels=len(label_map) + 1,
+    #                                                    output_attentions=False, output_hidden_states=False)
+    model = AutoModelForTokenClassification.from_pretrained(config["model"]["path"], num_labels=len(label_map) + 1,
+                                                            output_attentions=False, output_hidden_states=False)
     model.cuda()
 
     # Load the AdamW optimizer

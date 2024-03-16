@@ -3,7 +3,7 @@ desc: "Baseline experiment. Learning rate scheduler is linear, training 5 epochs
 model:
   name: "BERT"
   desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
-  path: "TODO"
+  path: "google-bert/bert-base-uncased"
 
 datasets:
   cnec2:
