@@ -163,7 +163,7 @@ def get_new_labels(in_ids, lbls, lbll_map, tokenizer):
     return new_lbls
 
 
-if __name__ == '__main__':
+def main():
     model_dir = "../results/model"
 
     args = parse_arguments()
@@ -176,8 +176,6 @@ if __name__ == '__main__':
 
     dataset_files = get_dataset(config["datasets"]["cnec2"]["url_path"])
     sentences = parse(dataset_files["train.conll"])
-    
-    # TODO pridat nacitani ulozeneho stavu natrenovaneho modelu z checkpointu (accelerator)
 
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])
@@ -286,6 +284,8 @@ if __name__ == '__main__':
 
     loss_values = []
 
+    # TODO evaluace behem trenovani jednotlivych epoch?
+    # https://huggingface.co/learn/nlp-course/en/chapter7/2?fw=pt
     for epoch_i in range(0, epochs):
 
         print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, epochs))
@@ -413,3 +413,6 @@ if __name__ == '__main__':
     f1 = f1_score(real_token_labels, real_token_predictions, average='micro')
 
     print("F1 score: {:.2%}".format(f1))
+
+if __name__ == "__main__":
+    main()
