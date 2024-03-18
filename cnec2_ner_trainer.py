@@ -104,7 +104,7 @@ def get_labels_map(uniq_labels):
     return label_map
 
 
-def get_attention_mask(conllu_sentences):
+def get_attention_mask(conllu_sentences, tokenizer, max_length):
     simplefilter(action='ignore', category=FutureWarning)
 
     in_ids = []
@@ -116,7 +116,7 @@ def get_attention_mask(conllu_sentences):
             sent_str,
             add_special_tokens=True,
             truncation=True,
-            max_length=120, # TODO nastavit max_length
+            max_length=max_length, # TODO tedka nastaveno na 55, puvodne by Adam 120
             pad_to_max_length=True,
             return_attention_mask=True,
             return_tensors='pt',
@@ -130,7 +130,7 @@ def get_attention_mask(conllu_sentences):
     return att_mask, in_ids
 
 
-def get_new_labels(in_ids, lbls, lbll_map):
+def get_new_labels(in_ids, lbls, lbll_map, tokenizer):
     new_lbls = []
 
     null_label_id = -100
@@ -192,8 +192,10 @@ if __name__ == '__main__':
     labels = get_labels(sentences)
     unique_labels = get_unique_labels(sentences)
     label_map = get_labels_map(unique_labels)
-    attention_masks, input_ids = get_attention_mask(sentences)
-    new_labels = get_new_labels(input_ids, labels, label_map)
+    attention_masks, input_ids = get_attention_mask(sentences,
+                                                    tokenizer,
+                                                    config["training"]["attention_mask"]["max_length"])
+    new_labels = get_new_labels(input_ids, labels, label_map, tokenizer)
 
     pt_input_ids = torch.stack(input_ids, dim=0)
     pt_attention_masks = torch.stack(attention_masks, dim=0)
