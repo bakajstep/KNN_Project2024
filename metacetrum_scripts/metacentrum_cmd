@@ -1,0 +1,2 @@
+- spusteni v interaktivnim modu s mensimi pozadavky (obdoba scriptu train.sh)
+qsub -I -q gpu -l select=1:ncpus=1:ngpus=1:gpu_cap=cuda80:mem=10gb:scratch_local=10gb -v branch="main",config="baseline_linear_lr_5e5_5_epochs" -l walltime="1:0:0"

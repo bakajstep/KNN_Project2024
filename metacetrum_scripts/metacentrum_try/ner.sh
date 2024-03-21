@@ -1,19 +1,4 @@
 #!/bin/bash
-#PBS -N batch_job_knn
-#PBS -q gpu
-#PBS -l select=1:ncpus=2:ngpus=1:gpu_cap=cuda80:gpu_mem=20gb:mem=20gb:scratch_ssd=20gb:cluster=galdor
-#PBS -l walltime=1:00:00
-#PBS -j oe
-#PBS -m ae
-
-# -j oe ... standard error stream of the job will be merged with the standard output stream
-# -m ae ...  mail is sent when the job aborts or terminates
-
-# The source code of this file is based on the following source:
-#
-# Source web: GitHub
-# Link to the source: https://github.com/roman-janik/diploma_thesis_program/blob/main/ner/train_ner_model.sh
-# Author: Roman Janík (https://github.com/roman-janik)
 
 trap 'clean_scratch' TERM EXIT
 
@@ -26,11 +11,11 @@ printf "\-----------------------------------------------------------\n"
 printf "JOB ID:             %s\n" "$PBS_JOBID"
 printf "JOB NAME:           %s\n" "$PBS_JOBNAME"
 printf "JOB SERVER NODE:    %s\n" "$HOSTNAME"
-printf "START TIME:         %s\n" "$(date +%Y-%m-%d-%H-%M)"
+# printf "START TIME:         %s\n" "$(date +%Y-%m-%d-%H-%M)"
 printf "GIT BRANCH:         $branch\n"
 printf "\-----------------------------------------------------------\n"
 
-start_time=$(date +%s)
+# start_time=$(date +%s)
 
 cd "$SCRATCHDIR" || exit 2
 
@@ -96,7 +81,7 @@ all_exp_results_csv="$RESPATH"all_experiment_results_"$curr_date".csv
 
 
 # Run training and save results for configs in list of configurations
-printf "\nPreparation took %s seconds, starting training...\n" $(($(date +%s) - start_time))
+# printf "\nPreparation took %s seconds, starting training...\n" $(($(date +%s) - start_time))
 
 # For now, just run the training script:
 # printf "Start training\n"
