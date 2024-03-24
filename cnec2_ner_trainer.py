@@ -11,7 +11,7 @@ from sklearn.metrics import f1_score
 import argparse
 from yaml import safe_load
 
-from accelerator import Accelerator
+from accelerate import Accelerator
 
 from torch.utils.data import TensorDataset, random_split, DataLoader, RandomSampler, SequentialSampler
 from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, get_scheduler # get_linear_schedule_with_warmup
