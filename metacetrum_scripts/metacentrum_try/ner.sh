@@ -69,7 +69,7 @@ else
 
   config_list=$(for cfg in $config
   do
-    echo "exp_configs_ner/$cfg.yaml"
+    echo "configs/$cfg.yaml"
   done)
 fi
 
