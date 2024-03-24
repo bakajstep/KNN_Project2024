@@ -218,7 +218,6 @@ def main():
     batch_size = config["training"]["batch_size"]
 
     train_dataloader = DataLoader(train_dataset, sampler=RandomSampler(train_dataset), batch_size=batch_size)
-    # TODO why is unused @Zido? Is it needed?
     validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset), batch_size=batch_size)    
 
     # Test data.
@@ -240,8 +239,6 @@ def main():
     test_prediction_dataloader = DataLoader(test_prediction_data, sampler=test_prediction_sampler, batch_size=batch_size)
 
     # Model.
-    # model = BertForTokenClassification.from_pretrained("bert-base-uncased", num_labels=len(label_map) + 1,
-    #                                                    output_attentions=False, output_hidden_states=False)
     model = AutoModelForTokenClassification.from_pretrained(config["model"]["path"], num_labels=len(label_map) + 1,
                                                             output_attentions=False, output_hidden_states=False)
     model.cuda()
@@ -273,8 +270,8 @@ def main():
 
     accelerator = Accelerator()
 
-    model, optimizer, train_dataloader, test_prediction_dataloader, scheduler = accelerator.prepare(
-        model, optimizer, train_dataloader, test_prediction_dataloader, scheduler
+    model, optimizer, train_dataloader, validation_dataloader, test_prediction_dataloader, scheduler = accelerator.prepare(
+        model, optimizer, train_dataloader, validation_dataloader, test_prediction_dataloader, scheduler
     )
 
     # Setting the random seed for reproducibility, etc.
@@ -289,8 +286,13 @@ def main():
 
     # TODO evaluace behem trenovani jednotlivych epoch?
     # https://huggingface.co/learn/nlp-course/en/chapter7/2?fw=pt
+    #################
+    # Training loop #
+    #################
     for epoch_i in range(0, epochs):
-
+        ############
+        # Training #
+        ############
         print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, epochs))
         print('Training...')
 
@@ -330,13 +332,86 @@ def main():
 
         print("  Average training loss: {0:.2f}".format(avg_train_loss))
 
-    # Saving model.
-    # https://huggingface.co/course/en/chapter7/2?fw=pt
-    accelerator.wait_for_everyone()
-    unwrapped_model = accelerator.unwrap_model(model)
-    unwrapped_model.save_pretrained(model_dir, save_function=accelerator.save)
-    if accelerator.is_main_process:
-        tokenizer.save_pretrained(model_dir)
+        val_predictions, val_true_labels = [], []
+
+        # TODO jestli pouzit accelerator i v evaluations
+        ##############
+        # Evaluation #
+        ##############
+        for batch in validation_dataloader:
+            # Add batch to GPU
+            batch = tuple(t.to(device) for t in batch)
+
+            # Unpack the inputs from our dataloader
+            b_input_ids, b_input_mask, b_labels = batch
+
+            # Telling the model not to compute or store gradients, saving memory and
+
+            with torch.no_grad():
+                # Forward pass, calculate logit predictions
+                outputs = model(b_input_ids, token_type_ids=None,
+                                attention_mask=b_input_mask)
+
+            logits = outputs[0]
+
+            # Move logits and labels to CPU
+            logits = logits.detach().cpu().numpy()
+            label_ids = b_labels.to('cpu').numpy()
+
+            # Store predictions and true labels
+            val_predictions.append(logits)
+            val_true_labels.append(label_ids)
+
+        # First, combine the results across the batches.
+        all_val_predictions = np.concatenate(val_predictions, axis=0)
+        all_val_true_labels = np.concatenate(val_true_labels, axis=0)
+
+        print("After flattening the batches, the predictions have shape:")
+        print("    ", all_val_predictions.shape)
+
+        # Next, let's remove the third dimension (axis 2), which has the scores
+        # for all 18 labels.
+
+        # For each token, pick the label with the highest score.
+        val_predicted_label_ids = np.argmax(all_predictions, axis=2)
+
+        print("\nAfter choosing the highest scoring label for each token:")
+        print("    ", val_predicted_label_ids.shape)
+
+        # Eliminate axis 0, which corresponds to the sentences.
+        val_predicted_label_ids = np.concatenate(val_predicted_label_ids, axis=0)
+        val_all_true_labels = np.concatenate(val_all_true_labels, axis=0)
+
+        print("\nAfter flattening the sentences, we have predictions:")
+        print("    ", val_predicted_label_ids.shape)
+        print("and ground truth:")
+        print("    ", val_all_true_labels.shape)
+
+        val_token_predictions = []
+        val_token_labels = []
+
+        # For each of the input tokens in the dataset...
+        for i in range(len(all_val_true_labels)):
+
+            # If it's not a token with a null label...
+            if not all_val_true_labels[i] == -100:
+                # Add the prediction and the ground truth to their lists.
+                val_token_predictions.append(val_predicted_label_ids[i])
+                val_token_labels.append(all_val_true_labels[i])
+
+        val_f1 = f1_score(val_token_labels, val_token_predictions, average='micro')
+
+        print("F1 score: {:.2%}".format(val_f1))
+
+        ################
+        # Saving model #
+        ################
+        # https://huggingface.co/course/en/chapter7/2?fw=pt
+        accelerator.wait_for_everyone()
+        unwrapped_model = accelerator.unwrap_model(model)
+        unwrapped_model.save_pretrained(model_dir, save_function=accelerator.save)
+        if accelerator.is_main_process:
+            tokenizer.save_pretrained(model_dir)
 
     # Testing
     print('Predicting labels for {:,} test sentences...'.format(len(pt_input_ids)))
@@ -347,7 +422,7 @@ def main():
     # Tracking variables
     predictions, true_labels = [], []
 
-    # TODO jestli pouzit accelerator i v evaluations
+    # TODO jestli pouzit accelerator i v testovani
     # https://github.com/roman-janik/diploma_thesis_program/blob/main/train_ner_model.py#L259
     # Predict
     for batch in test_prediction_dataloader:
