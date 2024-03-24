@@ -116,7 +116,7 @@ def get_attention_mask(conllu_sentences, tokenizer, max_length):
             sent_str,
             add_special_tokens=True,
             truncation=True,
-            max_length=max_length, # TODO tedka nastaveno na 55, puvodne by Adam 120
+            max_length=max_length,
             pad_to_max_length=True,
             return_attention_mask=True,
             return_tensors='pt',
@@ -182,6 +182,9 @@ def main():
     
     print(conllu_to_string(sentences[0]))
     TokenLength = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True)) for i in sentences]
+
+    maximum_token_length = max(TokenLength)
+
     print(TokenLength)
     print('Minimum  length: {:,} tokens'.format(min(TokenLength)))
     print('Maximum length: {:,} tokens'.format(max(TokenLength)))
@@ -192,7 +195,7 @@ def main():
     label_map = get_labels_map(unique_labels)
     attention_masks, input_ids = get_attention_mask(sentences,
                                                     tokenizer,
-                                                    config["training"]["attention_mask"]["max_length"])
+                                                    maximum_token_length + 1)
     new_labels = get_new_labels(input_ids, labels, label_map, tokenizer)
 
     pt_input_ids = torch.stack(input_ids, dim=0)
