@@ -116,7 +116,7 @@ def get_attention_mask(conllu_sentences, tokenizer, max_length):
             sent_str,
             add_special_tokens=True,
             truncation=True,
-            max_length=max_length,
+            max_length= 512, # max_length, # RuntimeError: The expanded size of the tensor (527) must match the existing size (512) at non-singleton dimension 1.  Target sizes: [32, 527].  Tensor sizes: [1, 512]
             pad_to_max_length=True,
             return_attention_mask=True,
             return_tensors='pt',
