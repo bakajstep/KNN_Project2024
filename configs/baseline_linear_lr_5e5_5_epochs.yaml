@@ -15,16 +15,12 @@ training:
   num_train_epochs: 5
   batch_size: 32
 
-  attention_mask:
-    max_length: 55
-
   optimizer:
     learning_rate: 5e-5
     weight_decay: 0.01
     beta1: 0.9
     beta2: 0.999
     eps: 1e-8
-    amsgrad: False
   lr_scheduler:
     name: "linear"
     num_warmup_steps: 0
