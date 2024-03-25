@@ -231,7 +231,9 @@ def main():
     test_unique_labels = get_unique_labels(test_sentences)
     test_label_map = get_labels_map(test_unique_labels)
     # TODO is it needed? because it is unused
-    test_attention_masks, test_input_ids = get_attention_mask(test_sentences)
+    test_attention_masks, test_input_ids = get_attention_mask(test_sentences,
+                                                              tokenizer,
+                                                              maximum_token_length + 1)
     test_new_labels = get_new_labels(test_input_ids, test_labels, test_label_map)
 
     test_pt_input_ids = torch.stack(input_ids, dim=0)
