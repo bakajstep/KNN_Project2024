@@ -135,13 +135,10 @@ def get_new_labels(in_ids, lbls, lbll_map, tokenizer):
 
     null_label_id = -100
 
-    print("in_ids:")
-    print(in_ids)
-
-    tokens = tokenizer.convert_ids_to_tokens(in_ids)
-
-    print("tokens:")
-    print(tokens)
+    # Convert tensor IDs to tokens using BertTokenizerFast
+    tokens_dict = {}
+    for tensor in in_ids:
+        tokens_dict.update({token_id: token for token_id, token in zip(tensor.tolist(), tokenizer.convert_ids_to_tokens(tensor.tolist()))})
 
     for (sen, orig_labels) in zip(in_ids, lbls):
         padded_labels = []
@@ -153,7 +150,7 @@ def get_new_labels(in_ids, lbls, lbll_map, tokenizer):
             if (token_id == tokenizer.pad_token_id) or \
                     (token_id == tokenizer.cls_token_id) or \
                     (token_id == tokenizer.sep_token_id) or \
-                    (tokens[token_id][0:2] == '##'):
+                    (tokens_dict[token_id][0:2] == '##'):
 
                 padded_labels.append(null_label_id)
             else:
