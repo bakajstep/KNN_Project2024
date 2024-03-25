@@ -145,7 +145,7 @@ def get_new_labels(in_ids, lbls, lbll_map, tokenizer):
             if (token_id == tokenizer.pad_token_id) or \
                     (token_id == tokenizer.cls_token_id) or \
                     (token_id == tokenizer.sep_token_id) or \
-                    (tokenizer.ids_to_tokens[token_id][0:2] == '##'):
+                    (tokenizer.convert_ids_to_tokens[token_id][0:2] == '##'):
 
                 padded_labels.append(null_label_id)
             else:
