@@ -258,7 +258,6 @@ def main():
                       betas=(config_optimizer["beta1"], config_optimizer["beta2"]),
                       eps=config_optimizer["eps"],
                       weight_decay=config_optimizer["weight_decay"],
-                      amsgrad=config_optimizer["amsgrad"]
                       )
 
     # Number of training epochs

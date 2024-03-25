@@ -21,7 +21,6 @@ training:
     beta1: 0.9
     beta2: 0.999
     eps: 1e-8
-    amsgrad: False
   lr_scheduler:
     name: "linear"
     num_warmup_steps: 0
