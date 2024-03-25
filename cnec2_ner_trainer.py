@@ -135,6 +135,8 @@ def get_new_labels(in_ids, lbls, lbll_map, tokenizer):
 
     null_label_id = -100
 
+    tokens = tokenizer.get_vocab()
+
     for (sen, orig_labels) in zip(in_ids, lbls):
         padded_labels = []
         orig_labels_i = 0
@@ -145,7 +147,7 @@ def get_new_labels(in_ids, lbls, lbll_map, tokenizer):
             if (token_id == tokenizer.pad_token_id) or \
                     (token_id == tokenizer.cls_token_id) or \
                     (token_id == tokenizer.sep_token_id) or \
-                    (tokenizer.convert_ids_to_tokens[token_id][0:2] == '##'):
+                    (tokens[token_id][0:2] == '##'):
 
                 padded_labels.append(null_label_id)
             else:
@@ -225,6 +227,7 @@ def main():
     test_labels = get_labels(test_sentences)
     test_unique_labels = get_unique_labels(test_sentences)
     test_label_map = get_labels_map(test_unique_labels)
+    # TODO is it needed? because it is unused
     test_attention_masks, test_input_ids = get_attention_mask(test_sentences)
     test_new_labels = get_new_labels(test_input_ids, test_labels, test_label_map)
 
