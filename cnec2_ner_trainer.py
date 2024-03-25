@@ -220,7 +220,7 @@ def main():
     print('{:>5,} training samples'.format(train_size))
     print('{:>5,} validation samples'.format(val_size))
 
-    batch_size = config["training"]["batch_size"]
+    batch_size = int(config["training"]["batch_size"])
 
     train_dataloader = DataLoader(train_dataset, sampler=RandomSampler(train_dataset), batch_size=batch_size)
     validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset), batch_size=batch_size)    
@@ -254,14 +254,14 @@ def main():
     # Load the AdamW optimizer
     config_optimizer = config["training"]["optimizer"]
     optimizer = AdamW(model.parameters(),
-                      lr=config_optimizer["learning_rate"],
-                      betas=(config_optimizer["beta1"], config_optimizer["beta2"]),
-                      eps=config_optimizer["eps"],
-                      weight_decay=config_optimizer["weight_decay"],
+                      lr=float(config_optimizer["learning_rate"]),
+                      betas=(float(config_optimizer["beta1"]), float(config_optimizer["beta2"])),
+                      eps=float(config_optimizer["eps"]),
+                      weight_decay=float(config_optimizer["weight_decay"]),
                       )
 
     # Number of training epochs
-    epochs = config["training"]["num_train_epochs"]
+    epochs = int(config["training"]["num_train_epochs"])
 
     # Total number of training steps is number of batches * number of epochs.
     num_training_steps = len(train_dataloader) * epochs
@@ -271,7 +271,7 @@ def main():
     scheduler = get_scheduler(
         config_scheduler["name"],
         optimizer=optimizer,
-        num_warmup_steps=int(config_scheduler["num_warmup_steps"] * num_training_steps),
+        num_warmup_steps=int(config_scheduler["num_warmup_steps"]) * num_training_steps,
         num_training_steps=num_training_steps
     )
 
