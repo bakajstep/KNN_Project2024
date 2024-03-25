@@ -234,7 +234,7 @@ def main():
     test_attention_masks, test_input_ids = get_attention_mask(test_sentences,
                                                               tokenizer,
                                                               maximum_token_length + 1)
-    test_new_labels = get_new_labels(test_input_ids, test_labels, test_label_map)
+    test_new_labels = get_new_labels(test_input_ids, test_labels, test_label_map, tokenizer)
 
     test_pt_input_ids = torch.stack(input_ids, dim=0)
     test_pt_attention_masks = torch.stack(attention_masks, dim=0)
