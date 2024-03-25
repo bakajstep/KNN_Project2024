@@ -387,12 +387,12 @@ def main():
 
         # Eliminate axis 0, which corresponds to the sentences.
         val_predicted_label_ids = np.concatenate(val_predicted_label_ids, axis=0)
-        val_all_true_labels = np.concatenate(val_all_true_labels, axis=0)
+        all_val_true_labels = np.concatenate(all_val_true_labels, axis=0)
 
         print("\nAfter flattening the sentences, we have predictions:")
         print("    ", val_predicted_label_ids.shape)
         print("and ground truth:")
-        print("    ", val_all_true_labels.shape)
+        print("    ", all_val_true_labels.shape)
 
         val_token_predictions = []
         val_token_labels = []
