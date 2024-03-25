@@ -380,7 +380,7 @@ def main():
         # for all 18 labels.
 
         # For each token, pick the label with the highest score.
-        val_predicted_label_ids = np.argmax(all_predictions, axis=2)
+        val_predicted_label_ids = np.argmax(all_val_predictions, axis=2)
 
         print("\nAfter choosing the highest scoring label for each token:")
         print("    ", val_predicted_label_ids.shape)
