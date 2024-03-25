@@ -135,7 +135,13 @@ def get_new_labels(in_ids, lbls, lbll_map, tokenizer):
 
     null_label_id = -100
 
+    print("in_ids:")
+    print(in_ids)
+
     tokens = tokenizer.convert_ids_to_tokens(in_ids)
+
+    print("tokens:")
+    print(tokens)
 
     for (sen, orig_labels) in zip(in_ids, lbls):
         padded_labels = []
