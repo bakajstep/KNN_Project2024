@@ -1,15 +1,3 @@
-TODO model co poslal Adam discord
-
-TODO projit:
-https://arxiv.org/pdf/2401.10825.pdf
-https://dspace.cvut.cz/bitstream/handle/10467/101028/F3-BP-2022-Krotil-Marian-CTUWORK-final.pdf?sequence=-1&isAllowed=y
-https://otik.uk.zcu.cz/bitstream/11025/47192/1/Lehe%C4%8Dka-%C5%A0vec2021_Chapter_ComparisonOfCzechTransformersO.pdf
-https://dspace.cuni.cz/handle/20.500.11956/176098
-https://aclanthology.org/C18-1139.pdf
-https://github.com/flairNLP/flair
-https://github.com/ufal/acl2019_nested_ner
-https://aclanthology.org/P19-1527.pdf
-
 -------------------------------------------------------------------
 
 Transformers:
@@ -47,14 +35,39 @@ Name: NameTag 2 Models
 Source: https://lindat.mff.cuni.cz/repository/xmlui/handle/11234/1-3773
 
 7.
+Name: flair
+Source: https://huggingface.co/flair/ner-english 
+Source2: https://huggingface.co/flair/ner-multi
+Taken from: https://aclanthology.org/P19-1527.pdf
+
+8.
 Name: Roberta
 Source: https://huggingface.co/docs/transformers/model_doc/roberta#transformers.RobertaForTokenClassification
 Taken from: huggingface
 
-8.
+9.
 Name: XLMRoberta
 Source: https://huggingface.co/docs/transformers/model_doc/xlm-roberta#transformers.XLMRobertaForTokenClassification
 Taken from: huggingface
+
+10.
+Name: XLM-roberta-large
+Source: https://huggingface.co/FacebookAI/xlm-roberta-large
+Taken from: https://otik.uk.zcu.cz/bitstream/11025/47192/1/Lehe%C4%8Dka-%C5%A0vec2021_Chapter_ComparisonOfCzechTransformersO.pdf
+
+11.
+Name: FERNET-C5, FERNET-News
+Source: https://huggingface.co/fav-kky/FERNET-C5 
+Source2: https://huggingface.co/fav-kky/FERNET-News
+Taken from: https://otik.uk.zcu.cz/bitstream/11025/47192/1/Lehe%C4%8Dka-%C5%A0vec2021_Chapter_ComparisonOfCzechTransformersO.pdf
+
+12.
+Name: Bart, mBart (multilanguage)
+Source: https://huggingface.co/facebook/bart-large
+Source2: https://huggingface.co/facebook/bart-base
+Source3: https://huggingface.co/dslim/bert-base-NER
+Source mBart: https://huggingface.co/docs/transformers/model_doc/mbart
+Taken from: https://dspace.cvut.cz/bitstream/handle/10467/101028/F3-BP-2022-Krotil-Marian-CTUWORK-final.pdf?sequence=-1&isAllowed=y
 
 -------------------------------------------------------------------
 
@@ -74,15 +87,3 @@ Name: OpenAI API
 Source: https://openai.com/blog/openai-api
 
 -------------------------------------------------------------------
-
-Dataset
-
-1.
-Name: CNEC 2.0 CoNLL
-Source: https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-3493/cnec2.0_extended.zip
-
-
-2.
-Name: wikiann
-Source: https://huggingface.co/datasets/wikiann
-Taken from: huggingface
