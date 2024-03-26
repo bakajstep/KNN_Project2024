@@ -16,6 +16,9 @@ from accelerate import Accelerator
 from torch.utils.data import TensorDataset, random_split, DataLoader, RandomSampler, SequentialSampler
 from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, get_scheduler # get_linear_schedule_with_warmup
 import torch
+import logging
+import os
+import datetime
 
 
 # https://github.com/roman-janik/diploma_thesis_program/blob/a23bfaa34d32f92cd17dc8b087ad97e9f5f0f3e6/train_ner_model.py#L28
@@ -56,10 +59,11 @@ def get_dataset(url_path):
 def get_device():
     if torch.cuda.is_available():
         train_device = torch.device("cuda")
-        print(torch.cuda.device_count())
-        print('Available:', torch.cuda.get_device_name(0))
+        log_msg("Number of GPU available: {}".format(torch.cuda.device_count()))
+        for i in range(torch.cuda.device_count()):
+            log_msg(f"Available GPU {i}: {torch.cuda.get_device_name(i)}")
     else:
-        print('No GPU available, using the CPU instead.')
+        log_msg('No GPU available, using the CPU instead.')
         train_device = torch.device("cpu")
 
     return train_device
@@ -168,14 +172,47 @@ def get_new_labels(in_ids, lbls, lbll_map, tokenizer):
     return new_lbls
 
 
+def log_msg(msg: str):
+    print(msg)
+    logging.info(msg)
+
+
+def log_summary(exp_name: str, config: dict):
+    log_msg("{:<24}{}\n{:<24}{}".format(
+        "Name:", exp_name.removeprefix("exp_configs_ner/").removesuffix(".yaml"), "Description:", config["desc"]))
+    ct = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_msg("{:<24}{}\n{:<24}{}\n{:<24}{}\n".format(
+        "Start time:", ct, "Model:", config["model"]["name"],
+        "Datasets:", [dts["name"] for dts in config["datasets"].values()]))
+
+    cf_t = config["training"]
+    log_msg("Parameters:\n{:<24}{}\n{:<24}{}".format(
+        "Num train epochs:", cf_t["num_train_epochs"], "Batch size:", cf_t["batch_size"]))
+    log_msg("{:<24}{}\n{:<24}{}\n{:<24}{}\n{:<24}{}".format(
+        "Learning rate:", cf_t["optimizer"]["learning_rate"], "Weight decay:", cf_t["optimizer"]["weight_decay"],
+        "Lr scheduler:",
+        cf_t["lr_scheduler"]["name"], "Warmup steps:", cf_t["lr_scheduler"]["num_warmup_steps"]))
+    log_msg("{:<24}{}\n{:<24}{}\n{:<24}{}".format(
+        "Beta1:", cf_t["optimizer"]["beta1"], "Beta2:", cf_t["optimizer"]["beta2"], "Epsilon:",
+        cf_t["optimizer"]["eps"]))
+
+
 def main():
     model_dir = "../results/model"
+    output_dir = "../results"
 
     args = parse_arguments()
 
     # Load a config file.
     with open(args.config, 'r') as config_file:
         config = safe_load(config_file)
+
+    # Start logging, print experiment configuration
+    logging.basicConfig(filename=os.path.join(output_dir, "experiment_results.txt"), level=logging.INFO,
+                        encoding='utf-8', format='%(message)s')
+    log_msg("Experiment summary:\n")
+    log_summary(args.config, config)
+    log_msg("-" * 80 + "\n")
 
     device = get_device()
 
@@ -185,15 +222,15 @@ def main():
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])
     
-    print(conllu_to_string(sentences[0]))
+    log_msg(conllu_to_string(sentences[0]))
     TokenLength = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True)) for i in sentences]
 
     maximum_token_length = max(TokenLength)
 
-    print(TokenLength)
-    print('Minimum  length: {:,} tokens'.format(min(TokenLength)))
-    print('Maximum length: {:,} tokens'.format(max(TokenLength)))
-    print('Median length: {:,} tokens'.format(int(np.median(TokenLength))))
+    log_msg("Token lengths")
+    log_msg('Minimum  length: {:,} tokens'.format(min(TokenLength)))
+    log_msg('Maximum length: {:,} tokens'.format(max(TokenLength)))
+    log_msg('Median length: {:,} tokens'.format(int(np.median(TokenLength))))
 
     labels = get_labels(sentences)
     unique_labels = get_unique_labels(sentences)
@@ -217,8 +254,8 @@ def main():
     # Divide the dataset by randomly selecting samples.
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-    print('{:>5,} training samples'.format(train_size))
-    print('{:>5,} validation samples'.format(val_size))
+    log_msg('{:>5,} training samples'.format(train_size))
+    log_msg('{:>5,} validation samples'.format(val_size))
 
     batch_size = int(config["training"]["batch_size"])
 
@@ -300,8 +337,8 @@ def main():
         ############
         # Training #
         ############
-        print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, epochs))
-        print('Training...')
+        log_msg('======== Epoch {:} / {:} ========'.format(epoch_i + 1, epochs))
+        log_msg('Training...')
 
         total_loss = 0
 
@@ -311,7 +348,7 @@ def main():
 
             if step % 40 == 0 and not step == 0:
                 # Report progress.
-                print('  Batch {:>5,}  of  {:>5,}.'.format(step, len(train_dataloader)))
+                log_msg('  Batch {:>5,}  of  {:>5,}.'.format(step, len(train_dataloader)))
 
             b_input_ids = batch[0].to(device)
             b_input_mask = batch[1].to(device)
@@ -337,7 +374,7 @@ def main():
         avg_train_loss = total_loss / len(train_dataloader)
         loss_values.append(avg_train_loss)
 
-        print("  Average training loss: {0:.2f}".format(avg_train_loss))
+        log_msg("  Average training loss: {0:.2f}".format(avg_train_loss))
 
         val_predictions, val_true_labels = [], []
 
@@ -373,8 +410,8 @@ def main():
         all_val_predictions = np.concatenate(val_predictions, axis=0)
         all_val_true_labels = np.concatenate(val_true_labels, axis=0)
 
-        print("After flattening the batches, the predictions have shape:")
-        print("    ", all_val_predictions.shape)
+        log_msg("After flattening the batches, the predictions have shape:")
+        log_msg(f"    {all_val_predictions.shape}")
 
         # Next, let's remove the third dimension (axis 2), which has the scores
         # for all 18 labels.
@@ -382,17 +419,17 @@ def main():
         # For each token, pick the label with the highest score.
         val_predicted_label_ids = np.argmax(all_val_predictions, axis=2)
 
-        print("\nAfter choosing the highest scoring label for each token:")
-        print("    ", val_predicted_label_ids.shape)
+        log_msg("\nAfter choosing the highest scoring label for each token:")
+        log_msg(f"    {val_predicted_label_ids.shape}")
 
         # Eliminate axis 0, which corresponds to the sentences.
         val_predicted_label_ids = np.concatenate(val_predicted_label_ids, axis=0)
         all_val_true_labels = np.concatenate(all_val_true_labels, axis=0)
 
-        print("\nAfter flattening the sentences, we have predictions:")
-        print("    ", val_predicted_label_ids.shape)
-        print("and ground truth:")
-        print("    ", all_val_true_labels.shape)
+        log_msg("\nAfter flattening the sentences, we have predictions:")
+        log_msg(f"    {val_predicted_label_ids.shape}")
+        log_msg("and ground truth:")
+        log_msg(f"    {all_val_true_labels.shape}")
 
         val_token_predictions = []
         val_token_labels = []
@@ -408,7 +445,7 @@ def main():
 
         val_f1 = f1_score(val_token_labels, val_token_predictions, average='micro')
 
-        print("F1 score: {:.2%}".format(val_f1))
+        log_msg("F1 score: {:.2%}".format(val_f1))
 
         ################
         # Saving model #
@@ -421,7 +458,7 @@ def main():
             tokenizer.save_pretrained(model_dir)
 
     # Testing
-    print('Predicting labels for {:,} test sentences...'.format(len(pt_input_ids)))
+    log_msg('Predicting labels for {:,} test sentences...'.format(len(pt_input_ids)))
 
     # Put model in evaluation mode
     model.eval()
@@ -456,14 +493,14 @@ def main():
         predictions.append(logits)
         true_labels.append(label_ids)
 
-    print('    DONE.')
+    log_msg('    DONE.')
 
     # First, combine the results across the batches.
     all_predictions = np.concatenate(predictions, axis=0)
     all_true_labels = np.concatenate(true_labels, axis=0)
 
-    print("After flattening the batches, the predictions have shape:")
-    print("    ", all_predictions.shape)
+    log_msg("After flattening the batches, the predictions have shape:")
+    log_msg(f"    {all_predictions.shape}")
 
     # Next, let's remove the third dimension (axis 2), which has the scores
     # for all 18 labels.
@@ -471,17 +508,17 @@ def main():
     # For each token, pick the label with the highest score.
     predicted_label_ids = np.argmax(all_predictions, axis=2)
 
-    print("\nAfter choosing the highest scoring label for each token:")
-    print("    ", predicted_label_ids.shape)
+    log_msg("\nAfter choosing the highest scoring label for each token:")
+    log_msg(f"    {predicted_label_ids.shape}")
 
     # Eliminate axis 0, which corresponds to the sentences.
     predicted_label_ids = np.concatenate(predicted_label_ids, axis=0)
     all_true_labels = np.concatenate(all_true_labels, axis=0)
 
-    print("\nAfter flattening the sentences, we have predictions:")
-    print("    ", predicted_label_ids.shape)
-    print("and ground truth:")
-    print("    ", all_true_labels.shape)
+    log_msg("\nAfter flattening the sentences, we have predictions:")
+    log_msg(f"    {predicted_label_ids.shape}")
+    log_msg("and ground truth:")
+    log_msg(f"    {all_true_labels.shape}")
 
     real_token_predictions = []
     real_token_labels = []
@@ -497,7 +534,7 @@ def main():
 
     f1 = f1_score(real_token_labels, real_token_predictions, average='micro')
 
-    print("F1 score: {:.2%}".format(f1))
+    log_msg("F1 score: {:.2%}".format(f1))
 
 if __name__ == "__main__":
     main()
