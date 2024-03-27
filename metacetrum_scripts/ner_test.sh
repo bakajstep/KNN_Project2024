@@ -103,7 +103,7 @@ printf "\nPreparation took %s seconds, starting testing...\n" $(($(date +%s) - s
 # python3 cnec2_ner_trainer.py
 # printf "Training exit code: %s\n" "$?"
 
-
+cp -R "$DATAPATH/pageXml" .
 
 model_idx=0
 for model_file in $model_list
