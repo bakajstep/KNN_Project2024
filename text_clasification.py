@@ -8,6 +8,14 @@ from pagexml.helper.pagexml_helper import make_text_region_text
 from transformers import pipeline
 
 
+# https://github.com/roman-janik/diploma_thesis_program/blob/a23bfaa34d32f92cd17dc8b087ad97e9f5f0f3e6/train_ner_model.py#L28
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', required=True, help='Training configuration file.')
+    # parser.add_argument('--results_csv', required=True, help='Results CSV file.')
+    args = parser.parse_args()
+    return args
+
 def extract_sentences_from_pagexml(xml_file):
     doc = parse_pagexml_file(xml_file)
 
@@ -61,13 +69,17 @@ def prediction_to_conll(out):
 
 
 def main():
+    args = parse_arguments()
+
+    model_checkpoint = args.model
+
     # path to directory with pagexml zip files
     xml_files_directory = "./pageXml"
     zip_files = find_zip_files(xml_files_directory)
     for file_name in zip_files:
         sentences = process_zip_files(file_name)
         # path to model current model
-        model_checkpoint = "./models/2024-03-25-14-07-baseline_linear_lr_5e5_5_epochs-h/model"
+        # model_checkpoint = "./models/2024-03-25-14-07-baseline_linear_lr_5e5_5_epochs-h/model"
         token_classifier = pipeline(
             "token-classification", model=model_checkpoint, aggregation_strategy="simple"
         )
