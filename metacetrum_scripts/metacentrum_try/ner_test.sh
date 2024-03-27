@@ -91,8 +91,6 @@ printf "\nPreparation took %s seconds, starting testing...\n" $(($(date +%s) - s
 
 cp -R "$DATAPATH/pageXml" .
 
-printf "\n Model list:$model_list"
-
 model_idx=0
 for model_file in $model_list
 do

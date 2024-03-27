@@ -134,7 +134,12 @@ do
 done
 
 result_folder="classification_results"
-cp *.conll ${RESPATH}${result_folder}
+
+if [ ! -d "${RESPATH}${result_folder}" ]; then # test if dir exists
+  mkdir "${RESPATH}${result_folder}"
+fi
+
+cp *.conll "${RESPATH}${result_folder}"
 
 # clean the SCRATCH directory
 clean_scratch
