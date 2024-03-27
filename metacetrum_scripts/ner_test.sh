@@ -84,7 +84,8 @@ else
 
    model_list=$(for mod in $model
    do
-     echo "models/$mod"
+#     echo "models/$mod"
+      echo "$mod"
    done)
 fi
 
@@ -117,12 +118,12 @@ do
   printf "Start testing\n"
 
   # Run the training script.
-  python text_classification.py --model "$RESPATH $model_file" # --results_csv "$all_exp_results_csv"
+  python text_classification.py --model "$RESPATH$model_file" # --results_csv "$all_exp_results_csv"
   printf "Testing exit code: %s\n" "$?"
 
   # Save results
   printf "\nSave results\n"
-  new_model_dir=$RESPATH/$(date +%Y-%m-%d-%H-%M)-$model_name-testing-${stime}h
+  new_model_dir=$RESPATH$(date +%Y-%m-%d-%H-%M)-$model_name-testing-${stime}h
   mkdir "$new_model_dir"
   grep -vx '^Loading.*arrow' ../results/experiment_results.txt > ../results/experiment_results_f.txt # Remove logs from dataset load
   printf -- '-%.0s' {1..180} >> "$all_exp_results"; printf "\n%s. experiment\n" $config_idx >> "$all_exp_results"
