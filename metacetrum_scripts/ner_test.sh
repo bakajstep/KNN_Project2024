@@ -133,7 +133,7 @@ do
   cp "$model_file" "$new_model_dir"
 done
 
-cp -R . $RESPATH
+cp -R *.conll $RESPATH/classification_results
 
 # clean the SCRATCH directory
 clean_scratch
