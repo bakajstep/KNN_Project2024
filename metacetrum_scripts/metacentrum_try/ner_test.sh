@@ -60,7 +60,7 @@ TMPDIR=../../tmp pip install torch==2.0.0 --extra-index-url https://download.pyt
 
 # Prepare list of models
 if [ "$model" == "all" ]; then
-    model_list="modelss/*"
+    model_list="models/*"
 else
    if [ "${model:0:1}" == '[' ]; then # list of configs
      model=${model#*[}
@@ -69,15 +69,16 @@ else
 
    model_list=$(for mod in $model
    do
-     echo "models/$mod"
+#     echo "models/$mod"
+      echo "$mod"
    done)
 fi
 
 # Create all experiment results files
-curr_date="$(date +%Y-%m-%d-%H-%M)"
-all_exp_results="$RESPATH"all_experiment_results_"$curr_date".txt
-touch "$all_exp_results"
-all_exp_results_csv="$RESPATH"all_experiment_results_"$curr_date".csv
+# curr_date="$(date +%Y-%m-%d-%H-%M)"
+# all_exp_results="$RESPATH"all_experiment_results_"$curr_date".txt
+# touch "$all_exp_results"
+# all_exp_results_csv="$RESPATH"all_experiment_results_"$curr_date".csv
 
 
 # Run testing and save results for configs in list of configurations
@@ -88,7 +89,9 @@ printf "\nPreparation took %s seconds, starting testing...\n" $(($(date +%s) - s
 # python3 cnec2_ner_trainer.py
 # printf "Training exit code: %s\n" "$?"
 
+cp -R "$DATAPATH/pageXml" .
 
+printf "\n Model list:$model_list"
 
 model_idx=0
 for model_file in $model_list
@@ -102,12 +105,12 @@ do
   printf "Start testing\n"
 
   # Run the training script.
-  python text_classification.py --model "$RESPATH/$model_file" # --results_csv "$all_exp_results_csv"
+  python text_classification.py --model "${RESPATH}${model_file}" # --results_csv "$all_exp_results_csv"
   printf "Testing exit code: %s\n" "$?"
 
   # Save results
   printf "\nSave results\n"
-  new_model_dir=$RESPATH/$(date +%Y-%m-%d-%H-%M)-$config_name-testing-${stime}h
+  new_model_dir=$RESPATH$(date +%Y-%m-%d-%H-%M)-$model_name-testing-${stime}h
   mkdir "$new_model_dir"
   grep -vx '^Loading.*arrow' ../results/experiment_results.txt > ../results/experiment_results_f.txt # Remove logs from dataset load
   printf -- '-%.0s' {1..180} >> "$all_exp_results"; printf "\n%s. experiment\n" $config_idx >> "$all_exp_results"
@@ -116,6 +119,9 @@ do
   mv ../results/* "$new_model_dir"
   cp "$model_file" "$new_model_dir"
 done
+
+result_folder="classification_results"
+cp *.conll ${RESPATH}${result_folder}
 
 # clean the SCRATCH directory
 clean_scratch
