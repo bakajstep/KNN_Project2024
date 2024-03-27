@@ -121,7 +121,7 @@ do
 done
 
 result_folder="classification_results"
-cp *.conll ${RESPATH}${result_folder}
+cp *.conll "${RESPATH}${result_folder}"
 
 # clean the SCRATCH directory
 clean_scratch
