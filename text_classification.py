@@ -3,6 +3,7 @@ import os
 import tempfile
 import zipfile
 
+import argparse
 from pagexml.parser import parse_pagexml_file
 from pagexml.helper.pagexml_helper import make_text_region_text
 from transformers import pipeline
