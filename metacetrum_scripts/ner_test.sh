@@ -118,7 +118,7 @@ do
   printf "Start testing\n"
 
   # Run the training script.
-  python text_classification.py --model "$RESPATH$model_file" # --results_csv "$all_exp_results_csv"
+  python text_classification.py --model "${RESPATH}${model_file}" # --results_csv "$all_exp_results_csv"
   printf "Testing exit code: %s\n" "$?"
 
   # Save results
@@ -133,7 +133,8 @@ do
   cp "$model_file" "$new_model_dir"
 done
 
-cp -R *.conll $RESPATH/classification_results
+result_folder = "classification_results"
+cp *.conll ${RESPATH}${result_folder}
 
 # clean the SCRATCH directory
 clean_scratch
