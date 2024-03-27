@@ -10,6 +10,7 @@ from sklearn.metrics import f1_score
 
 import argparse
 from yaml import safe_load
+from datasets.cnec2_extended import get_cnec2_extended
 
 from accelerate import Accelerator
 
@@ -25,32 +26,6 @@ def parse_arguments():
     # parser.add_argument('--results_csv', required=True, help='Results CSV file.')
     args = parser.parse_args()
     return args
-
-
-def get_dataset(url_path):
-    response = requests.get(url_path)
-    zip_file = zipfile.ZipFile(BytesIO(response.content))
-
-    root_dir = 'cnec2.0_extended/'
-    files_to_extract = ['dev.conll', 'train.conll', 'test.conll']
-
-    file_contents = {}
-
-    for file_name in files_to_extract:
-        with zip_file.open(root_dir + file_name) as file:
-            lines = file.read().decode('utf-8').splitlines()
-            numbered_lines = []
-            line_number = 1
-            for line in lines:
-                if line.strip():
-                    numbered_lines.append(f"{line_number}\t{line}")
-                    line_number += 1
-                else:
-                    numbered_lines.append("")
-                    line_number = 1
-            file_contents[file_name] = "\n".join(numbered_lines)
-
-    return file_contents
 
 
 def get_device():
@@ -179,8 +154,10 @@ def main():
 
     device = get_device()
 
-    dataset_files = get_dataset(config["datasets"]["cnec2"]["url_path"])
-    sentences = parse(dataset_files["train.conll"])
+    sentences = []
+    if "cnec2" in config["datasets"]:
+        dataset_files = get_cnec2_extended(config["datasets"]["cnec2"]["url_path"])
+        sentences.extend(parse(dataset_files["train.conll"]))
 
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])
