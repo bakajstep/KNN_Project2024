@@ -133,7 +133,7 @@ do
   cp "$model_file" "$new_model_dir"
 done
 
-result_folder = "classification_results"
+result_folder="classification_results"
 cp *.conll ${RESPATH}${result_folder}
 
 # clean the SCRATCH directory
