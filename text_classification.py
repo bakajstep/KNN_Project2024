@@ -87,7 +87,7 @@ def main():
         predictions = token_classifier(sentences[0])
         conll = prediction_to_conll(predictions)
         output_file_path = file_name[:-4].replace('/', '_').replace(".", "") + ".conll"
-        
+
         print("Output file:", output_file_path)
 
         with open(output_file_path, 'w', encoding='utf-8') as f:
