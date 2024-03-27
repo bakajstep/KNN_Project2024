@@ -75,7 +75,7 @@ TMPDIR=../../tmp pip install torch==2.0.0 --extra-index-url https://download.pyt
 
 # Prepare list of models
 if [ "$model" == "all" ]; then
-    model_list="modelss/*"
+    model_list="models/*"
 else
    if [ "${model:0:1}" == '[' ]; then # list of configs
      model=${model#*[}
@@ -105,6 +105,8 @@ printf "\nPreparation took %s seconds, starting testing...\n" $(($(date +%s) - s
 # printf "Training exit code: %s\n" "$?"
 
 cp -R "$DATAPATH/pageXml" .
+
+printf "\n Model list:$model_list"
 
 model_idx=0
 for model_file in $model_list
