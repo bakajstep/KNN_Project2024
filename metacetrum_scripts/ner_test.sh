@@ -89,10 +89,10 @@ else
 fi
 
 # Create all experiment results files
-curr_date="$(date +%Y-%m-%d-%H-%M)"
-all_exp_results="$RESPATH"all_experiment_results_"$curr_date".txt
-touch "$all_exp_results"
-all_exp_results_csv="$RESPATH"all_experiment_results_"$curr_date".csv
+# curr_date="$(date +%Y-%m-%d-%H-%M)"
+# all_exp_results="$RESPATH"all_experiment_results_"$curr_date".txt
+# touch "$all_exp_results"
+# all_exp_results_csv="$RESPATH"all_experiment_results_"$curr_date".csv
 
 
 # Run testing and save results for configs in list of configurations
@@ -122,7 +122,7 @@ do
 
   # Save results
   printf "\nSave results\n"
-  new_model_dir=$RESPATH/$(date +%Y-%m-%d-%H-%M)-$config_name-testing-${stime}h
+  new_model_dir=$RESPATH/$(date +%Y-%m-%d-%H-%M)-$model_name-testing-${stime}h
   mkdir "$new_model_dir"
   grep -vx '^Loading.*arrow' ../results/experiment_results.txt > ../results/experiment_results_f.txt # Remove logs from dataset load
   printf -- '-%.0s' {1..180} >> "$all_exp_results"; printf "\n%s. experiment\n" $config_idx >> "$all_exp_results"

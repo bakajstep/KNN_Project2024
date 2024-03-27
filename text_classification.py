@@ -87,6 +87,7 @@ def main():
         predictions = token_classifier(sentences[0])
         conll = prediction_to_conll(predictions)
         output_file_path = file_name[:-4].replace('/', '_').replace(".", "") + ".conll"
+        print(output_file_path) # TODO smazat
         with open(output_file_path, 'w', encoding='utf-8') as f:
             for c in conll:
                 f.write(c)
