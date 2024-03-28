@@ -6,3 +6,4 @@ torch==2.0.0
 transformers==4.37.2
 accelerate~=0.18.0
 pagexml-tools==0.5.0
+datasets==2.18.0

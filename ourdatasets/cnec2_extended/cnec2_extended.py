@@ -1,8 +1,5 @@
 import zipfile
 from io import BytesIO
-
-from conllu import parse
-
 import requests
 
 
@@ -20,7 +17,11 @@ def get_dataset(url_path):
         "I": "ORG"
     }
 
-    file_contents = {}
+    # Vytvoření výstupní složky, pokud neexistuje
+    output_dir = 'ourdatasets/cnec2_extended'
+    import os
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     for file_name in files_to_extract:
         with zip_file.open(root_dir + file_name) as file:
@@ -45,10 +46,14 @@ def get_dataset(url_path):
                 else:
                     processed_lines.append("")
                 line_number += 1
-            file_contents[file_name] = "\n".join(processed_lines)
 
-    return file_contents
+            # Zápis zpracovaného obsahu do souboru
+            output_file_path = os.path.join(output_dir, file_name)
+            with open(output_file_path, "w", encoding="utf-8") as output_file:
+                output_file.write("\n".join(processed_lines))
+
+    print(f"Files have been processed and saved to {output_dir}")
 
 
-def get_cnec2_extended(url):
-    return get_dataset(url)
+def get_cnec2_extended():
+    get_dataset("https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-3493/cnec2.0_extended.zip")
