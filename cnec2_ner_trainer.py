@@ -3,6 +3,7 @@ from warnings import simplefilter
 
 import numpy as np
 from conllu import parse
+
 from sklearn.metrics import f1_score
 
 import argparse
@@ -154,7 +155,7 @@ def log_summary(exp_name: str, config: dict):
     ct = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_msg("{:<24}{}\n{:<24}{}\n{:<24}{}\n".format(
         "Start time:", ct, "Model:", config["model"]["name"],
-        "Datasets:", [dts["name"] for dts in config["ourdatasets"].values()]))
+        "Datasets:", [dts["name"] for dts in config["datasets"].values()]))
 
     cf_t = config["training"]
     log_msg("Parameters:\n{:<24}{}\n{:<24}{}".format(
@@ -209,19 +210,6 @@ def main():
             "train.conll": "",
             "test.conll": "",
             "dev.conll": "",
-        }
-
-        for key in dataset_files.keys():
-            file_path = os.path.join(dataset_dir, key)
-            with open(file_path, 'r', encoding='utf-8') as file:
-                dataset_files[key] += file.read()
-        sentences.extend(parse(dataset_files["train.conll"]))
-    if "slavic" in config["datasets"]:
-        dataset_dir = "ourdatasets/slavic/cs"
-
-        dataset_files = {
-            "train.conll": "",
-            "test.conll": "",
         }
 
         for key in dataset_files.keys():
