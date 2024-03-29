@@ -173,6 +173,24 @@ def log_summary(exp_name: str, config: dict):
         cf_t["optimizer"]["eps"]))
 
 
+def dataset_from_sentences(sentences, tokenizer, maximum_token_length):
+    labels = get_labels(sentences)
+    unique_labels = get_unique_labels(sentences)
+    label_map = get_labels_map(unique_labels)
+    attention_masks, input_ids = get_attention_mask(sentences,
+                                                    tokenizer,
+                                                    maximum_token_length + 1)
+    new_labels = get_new_labels(input_ids, labels, label_map, tokenizer)
+
+    pt_input_ids = torch.stack(input_ids, dim=0)
+    pt_attention_masks = torch.stack(attention_masks, dim=0)
+    pt_labels = torch.tensor(new_labels, dtype=torch.long)
+
+    dataset = TensorDataset(pt_input_ids, pt_attention_masks, pt_labels)
+
+    return dataset
+
+
 def main():
     model_dir = "../results/model"
     output_dir = "../results"
@@ -307,23 +325,13 @@ def main():
                                                     tokenizer,
                                                     maximum_token_length + 1)
     new_labels = get_new_labels(input_ids, labels, label_map, tokenizer)
-
     pt_input_ids = torch.stack(input_ids, dim=0)
-    pt_attention_masks = torch.stack(attention_masks, dim=0)
-    pt_labels = torch.tensor(new_labels, dtype=torch.long)
 
-    # Combine the training inputs into a TensorDataset.
-    dataset = TensorDataset(pt_input_ids, pt_attention_masks, pt_labels)
+    train_dataset = dataset_from_sentences(sentences_train, tokenizer, maximum_token_length)
+    val_dataset = dataset_from_sentences(sentences_validate, tokenizer, maximum_token_length)
 
-    # Create a 90-10 train-validation split.
-    train_size = int(0.9 * len(dataset))
-    val_size = len(dataset) - train_size
-
-    # Divide the dataset by randomly selecting samples.
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
-
-    log_msg('{:>5,} training samples'.format(train_size))
-    log_msg('{:>5,} validation samples'.format(val_size))
+    log_msg('{:>5,} training samples'.format(len(train_dataset)))
+    log_msg('{:>5,} validation samples'.format(len(val_dataset)))
 
     batch_size = int(config["training"]["batch_size"])
 
@@ -331,7 +339,7 @@ def main():
     validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset), batch_size=batch_size)    
 
     # Test data.
-    test_sentences = parse(dataset_files["test.conll"])
+    test_sentences = sentences_test
     test_labels = get_labels(test_sentences)
     test_unique_labels = get_unique_labels(test_sentences)
     test_label_map = get_labels_map(test_unique_labels)
@@ -339,7 +347,6 @@ def main():
     test_attention_masks, test_input_ids = get_attention_mask(test_sentences,
                                                               tokenizer,
                                                               maximum_token_length + 1)
-    test_new_labels = get_new_labels(test_input_ids, test_labels, test_label_map, tokenizer)
 
     test_pt_input_ids = torch.stack(input_ids, dim=0)
     test_pt_attention_masks = torch.stack(attention_masks, dim=0)
