@@ -3,7 +3,6 @@ from warnings import simplefilter
 
 import numpy as np
 from conllu import parse
-
 from sklearn.metrics import f1_score
 
 import argparse

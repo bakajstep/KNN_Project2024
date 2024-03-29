@@ -3,7 +3,7 @@
 trap 'clean_scratch' TERM EXIT
 
 HOMEPATH=/storage/praha1/home/$PBS_O_LOGNAME
-DATAPATH=$HOMEPATH/datasets/            # folder with ourdatasets
+DATAPATH=$HOMEPATH/datasets/            # folder with datasets
 RESPATH=$HOMEPATH/program/results/      # store results in this folder
 HOSTNAME=$(hostname -f)                 # hostname of local machine
 
