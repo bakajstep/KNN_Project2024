@@ -4,6 +4,8 @@ from io import BytesIO
 
 import requests
 
+from parsers.util import zip_files, remove_files_by_extension
+
 
 def load_annotations(zip_file, path):
     annotations = {}
@@ -32,18 +34,17 @@ def convert_to_conll(annotations, raw_text):
                 token = token[:-1]
             tag = annotations.get(token, 'O')
             bio_tag = 'B-' + tag if tag != 'O' and (
-                        prev_tag == 'O' or prev_tag != tag) else 'I-' + tag if tag != 'O' else 'O'
+                    prev_tag == 'O' or prev_tag != tag) else 'I-' + tag if tag != 'O' else 'O'
             conll_lines.append(f"{token}\t{bio_tag}")
             prev_tag = tag
         conll_lines.append("")
     return "\n".join(conll_lines)
 
 
-def prepare_slavic(zip_url, output_file_name, language_code, annotated_dirs, raw_dirs):
+def prepare_datasets(zip_url, output_file_name, annotated_dirs, raw_dirs, output_dir):
     response = requests.get(zip_url)
     zip_file = zipfile.ZipFile(BytesIO(response.content))
 
-    output_dir = f"ourdatasets/slavic/{language_code}/"
     os.makedirs(output_dir, exist_ok=True)
 
     with open(os.path.join(output_dir, output_file_name), 'w', encoding='utf-8') as output_file:
@@ -57,3 +58,24 @@ def prepare_slavic(zip_url, output_file_name, language_code, annotated_dirs, raw
                     conll_content = convert_to_conll(annotations, raw_text)
 
                     output_file.write(conll_content + "\n")
+
+
+def prepare_slavic(zip_url_training, zip_url_validation, output_dir, dataset_name):
+    prepare_datasets(
+        zip_url_training,
+        "train.conll",
+        ["training_pl_cs_ru_bg_rc1/annotated/cs/"],
+        ["training_pl_cs_ru_bg_rc1/raw/cs/"],
+        output_dir
+    )
+    prepare_datasets(
+        zip_url_validation,
+        "test.conll",
+        ["annotated/nord_stream/cs/", "annotated/ryanair/cs/"],
+        ["raw/nord_stream/cs/", "raw/ryanair/cs/"],
+        output_dir
+    )
+    zip_files(output_dir, os.path.join(output_dir, f"{dataset_name}.zip"), ['.conll'])
+
+    remove_files_by_extension(output_dir, '.txt')
+    remove_files_by_extension(output_dir, '.conll')

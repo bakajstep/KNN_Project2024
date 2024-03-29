@@ -1,21 +1,26 @@
+import argparse
+import datetime
+import glob
+import logging
+import os
 import random
+import zipfile
 from warnings import simplefilter
 
 import numpy as np
+import torch
+from accelerate import Accelerator
 from conllu import parse
 from sklearn.metrics import f1_score
-
-import argparse
+from torch.utils.data import TensorDataset, random_split, DataLoader, RandomSampler, SequentialSampler
+from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, \
+    get_scheduler  # get_linear_schedule_with_warmup
 from yaml import safe_load
 
-from accelerate import Accelerator
-
-from torch.utils.data import TensorDataset, random_split, DataLoader, RandomSampler, SequentialSampler
-from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, get_scheduler # get_linear_schedule_with_warmup
-import torch
-import logging
-import os
-import datetime
+from parsers.cnec2_extended.cnec2_extended import get_cnec2_extended
+from parsers.slavic.slavic_bsnlp import prepare_slavic
+from parsers.util import remove_files_by_extension
+from parsers.wikiann_cs.wikiann_cs import prepare_wikiann
 
 
 # https://github.com/roman-janik/diploma_thesis_program/blob/a23bfaa34d32f92cd17dc8b087ad97e9f5f0f3e6/train_ner_model.py#L28
@@ -171,6 +176,7 @@ def log_summary(exp_name: str, config: dict):
 def main():
     model_dir = "../results/model"
     output_dir = "../results"
+    datasets_dir = "../results/datasets"
 
     args = parse_arguments()
 
@@ -187,35 +193,99 @@ def main():
 
     device = get_device()
 
-    sentences = []
+    sentences_train = []
+    sentences_test = []
+    sentences_validate = []
     if "cnec2" in config["datasets"]:
-        dataset_dir = "ourdatasets/cnec2_extended"
+        if not (os.path.exists(f"{datasets_dir}/cnec2.zip")):
+            get_cnec2_extended(config["datasets"]["cnec2"]["path"], datasets_dir, "cnec2")
 
-        dataset_files = {
-            "train.conll": "",
-            "test.conll": "",
-            "dev.conll": "",
-        }
+        with zipfile.ZipFile(f"{datasets_dir}/cnec2.zip", 'r') as zip_ref:
+            zip_ref.extractall(datasets_dir)
 
-        for key in dataset_files.keys():
-            file_path = os.path.join(dataset_dir, key)
+        dataset_info = [
+            ("train.conll", sentences_train),
+            ("test.conll", sentences_test),
+            ("validation.conll", sentences_validate)
+        ]
+
+        for filename, sentences_list in dataset_info:
+            file_path = os.path.join(datasets_dir, filename)
             with open(file_path, 'r', encoding='utf-8') as file:
-                dataset_files[key] += file.read()
-        sentences.extend(parse(dataset_files["train.conll"]))
+                file_content = file.read()
+                sentences = parse(file_content)
+                sentences_list.extend(sentences)
+
+        remove_files_by_extension(output_dir, '.conll')
+
     if "wikiann" in config["datasets"]:
-        dataset_dir = "ourdatasets/wikiann"
+        if not (os.path.exists(f"{datasets_dir}/wikiann.zip")):
+            prepare_wikiann(datasets_dir, "wikiann")
 
-        dataset_files = {
-            "train.conll": "",
-            "test.conll": "",
-            "dev.conll": "",
+        with zipfile.ZipFile(f"{datasets_dir}/wikiann.zip", 'r') as zip_ref:
+            zip_ref.extractall(datasets_dir)
+
+        dataset_info = [
+            ("train.conll", sentences_train),
+            ("test.conll", sentences_test),
+            ("validation.conll", sentences_validate)
+        ]
+
+        for filename, sentences_list in dataset_info:
+            file_path = os.path.join(datasets_dir, filename)
+            with open(file_path, 'r', encoding='utf-8') as file:
+                file_content = file.read()
+                sentences = parse(file_content)
+                sentences_list.extend(sentences)
+
+        remove_files_by_extension(output_dir, '.conll')
+
+    if "slavic" in config["datasets"]:
+        if not (os.path.exists(f"{datasets_dir}/slavic.zip")):
+            prepare_slavic(config["datasets"]["slavic"]["pathTrain"], config["datasets"]["slavic"]["pathTest"],
+                           datasets_dir, "slavic")
+
+        with zipfile.ZipFile(f"{datasets_dir}/slavic.zip", 'r') as zip_ref:
+            zip_ref.extractall(datasets_dir)
+
+        dataset_info = [
+            ("train.conll", sentences_train),
+            ("test.conll", sentences_test),
+        ]
+
+        # Načtení a zpracování každého datasetu
+        for filename, sentences_list in dataset_info:
+            file_path = os.path.join(datasets_dir, filename)
+            with open(file_path, 'r', encoding='utf-8') as file:
+                file_content = file.read()
+                sentences = parse(file_content)
+                sentences_list.extend(sentences)
+
+        remove_files_by_extension(output_dir, '.conll')
+
+    if "medival" in config["datasets"]:
+        if not (os.path.exists(f"{datasets_dir}/medival.zip")):
+            get_cnec2_extended(config["datasets"]["medival"]["path"], datasets_dir, "medival")
+
+        with zipfile.ZipFile(f"{datasets_dir}/medival.zip", 'r') as zip_ref:
+            zip_ref.extractall(datasets_dir)
+
+        patterns = {
+            "*training*.conll": sentences_train,
+            "*test*.conll": sentences_test,
+            "*validation*.conll": sentences_validate
         }
 
-        for key in dataset_files.keys():
-            file_path = os.path.join(dataset_dir, key)
-            with open(file_path, 'r', encoding='utf-8') as file:
-                dataset_files[key] += file.read()
-        sentences.extend(parse(dataset_files["train.conll"]))
+        for pattern, sentences_list in patterns.items():
+            # Vytvoření plného vzoru cesty s použitím glob
+            full_pattern = os.path.join(datasets_dir, pattern)
+            for file_path in glob.glob(full_pattern):
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    file_content = file.read()
+                    sentences = parse(file_content)
+                    sentences_list.extend(sentences)
+
+        remove_files_by_extension(output_dir, '.conll')
 
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])
