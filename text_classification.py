@@ -1,12 +1,13 @@
+import argparse
 import fnmatch
 import os
 import tempfile
 import zipfile
 
-import argparse
-from pagexml.parser import parse_pagexml_file
 from pagexml.helper.pagexml_helper import make_text_region_text
-from transformers import pipeline
+from pagexml.parser import parse_pagexml_file
+from safetensors import torch
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 
 # https://github.com/roman-janik/diploma_thesis_program/blob/a23bfaa34d32f92cd17dc8b087ad97e9f5f0f3e6/train_ner_model.py#L28
@@ -16,6 +17,7 @@ def parse_arguments():
     # parser.add_argument('--results_csv', required=True, help='Results CSV file.')
     args = parser.parse_args()
     return args
+
 
 def extract_sentences_from_pagexml(xml_file):
     doc = parse_pagexml_file(xml_file)
@@ -50,18 +52,30 @@ def process_zip_files(file_name):
 def prediction_to_conll(out):
     conll_output = []
     current_sentence = []
+    previous_tag = None
 
     for item in out:
         word = item["word"]
-        entity_tag = 'O' if item['entity_group'] == 'LABEL_0' else item['entity_group'].replace("LABEL_", "B-")
+        entity_group = item['entity_group']
 
-        # TODO change to format we use in our solution
+        if entity_group == 'LABEL_0':
+            entity_tag = 'O'
+            previous_tag = None
+        else:
+            entity_type = entity_group.replace("LABEL_", "")
+            if previous_tag == entity_type:
+                entity_tag = f"I-{entity_type}"
+            else:
+                entity_tag = f"B-{entity_type}"
+            previous_tag = entity_type
+
         current_sentence.append(f"{word}\t_\t_\t{entity_tag}")
 
         if word.endswith('.'):
             conll_output.append('\n'.join(current_sentence))
             conll_output.append("")
             current_sentence = []
+            previous_tag = None
 
     if current_sentence:
         conll_output.append('\n'.join(current_sentence))
@@ -81,13 +95,15 @@ def main():
         sentences = process_zip_files(file_name)
         # path to model current model
         # model_checkpoint = "./models/2024-03-25-14-07-baseline_linear_lr_5e5_5_epochs-h/model"
-        token_classifier = pipeline(
-            "token-classification", model=model_checkpoint, aggregation_strategy="simple"
-        )
-        predictions = token_classifier(sentences[0])
+        model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint)
+        tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+        text = sentences[0]
+        inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        with torch.no_grad():
+            predictions = model(**inputs)
         conll = prediction_to_conll(predictions)
         output_file_path = file_name[:-4].replace('/', '_').replace(".", "") + ".conll"
-        
+
         print("Output file:", output_file_path)
 
         with open(output_file_path, 'w', encoding='utf-8') as f:
