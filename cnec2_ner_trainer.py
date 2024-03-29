@@ -216,6 +216,19 @@ def main():
             with open(file_path, 'r', encoding='utf-8') as file:
                 dataset_files[key] += file.read()
         sentences.extend(parse(dataset_files["train.conll"]))
+    if "slavic" in config["datasets"]:
+        dataset_dir = "ourdatasets/slavic/cs"
+
+        dataset_files = {
+            "train.conll": "",
+            "test.conll": "",
+        }
+
+        for key in dataset_files.keys():
+            file_path = os.path.join(dataset_dir, key)
+            with open(file_path, 'r', encoding='utf-8') as file:
+                dataset_files[key] += file.read()
+        sentences.extend(parse(dataset_files["train.conll"]))
 
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])
