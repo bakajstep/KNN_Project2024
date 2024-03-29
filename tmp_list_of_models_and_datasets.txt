@@ -1,0 +1,89 @@
+-------------------------------------------------------------------
+
+Transformers:
+
+1.
+Name: Bert
+Source: google-bert/bert-base-uncased
+Taken from: https://github.com/Kanishkparganiha/Named-Entity-Recognition-using-BERT-with-PyTorch
+
+2.
+Name: robeczech-base
+Source: https://huggingface.co/ufal/robeczech-base
+Taken from: https://github.com/roman-janik/diploma_thesis_program/tree/main
+
+3.
+Name: Czert-B-base-cased
+Note: unfine-tuned CZERT-B-ner-CNEC-cased
+Source: https://huggingface.co/UWB-AIR/Czert-B-base-cased
+Taken from: https://github.com/roman-janik/diploma_thesis_program/tree/main
+
+4.
+Name: SlavicBert
+Source: https://github.com/deeppavlov/Slavic-BERT-NER
+Source: https://huggingface.co/DeepPavlov/bert-base-bg-cs-pl-ru-cased
+Taken from: https://github.com/roman-janik/diploma_thesis_program/tree/main
+
+5.
+Name: Small-E-czech
+Note: unfine-tuned Seznam fine-tuned
+Source: https://huggingface.co/Seznam/small-e-czech
+Taken from: huggingface
+
+6.
+Name: NameTag 2 Models
+Source: https://lindat.mff.cuni.cz/repository/xmlui/handle/11234/1-3773
+
+7.
+Name: flair
+Source: https://huggingface.co/flair/ner-english 
+Source2: https://huggingface.co/flair/ner-multi
+Taken from: https://aclanthology.org/P19-1527.pdf
+
+8.
+Name: Roberta
+Source: https://huggingface.co/docs/transformers/model_doc/roberta#transformers.RobertaForTokenClassification
+Taken from: huggingface
+
+9.
+Name: XLMRoberta
+Source: https://huggingface.co/docs/transformers/model_doc/xlm-roberta#transformers.XLMRobertaForTokenClassification
+Taken from: huggingface
+
+10.
+Name: XLM-roberta-large
+Source: https://huggingface.co/FacebookAI/xlm-roberta-large
+Taken from: https://otik.uk.zcu.cz/bitstream/11025/47192/1/Lehe%C4%8Dka-%C5%A0vec2021_Chapter_ComparisonOfCzechTransformersO.pdf
+
+11.
+Name: FERNET-C5, FERNET-News
+Source: https://huggingface.co/fav-kky/FERNET-C5 
+Source2: https://huggingface.co/fav-kky/FERNET-News
+Taken from: https://otik.uk.zcu.cz/bitstream/11025/47192/1/Lehe%C4%8Dka-%C5%A0vec2021_Chapter_ComparisonOfCzechTransformersO.pdf
+
+12.
+Name: Bart, mBart (multilanguage)
+Source: https://huggingface.co/facebook/bart-large
+Source2: https://huggingface.co/facebook/bart-base
+Source3: https://huggingface.co/dslim/bert-base-NER
+Source mBart: https://huggingface.co/docs/transformers/model_doc/mbart
+Taken from: https://dspace.cvut.cz/bitstream/handle/10467/101028/F3-BP-2022-Krotil-Marian-CTUWORK-final.pdf?sequence=-1&isAllowed=y
+
+-------------------------------------------------------------------
+
+Trained (already finetuned)
+
+1.
+Name: CZERT-B-ner-CNEC-cased
+Source: https://huggingface.co/UWB-AIR/Czert-B-base-cased nebo https://air.kiv.zcu.cz/public/CZERT-B-ner-CNEC-cased.zip
+
+2.
+Name: Seznam fine-tuned
+Source: https://huggingface.co/richielo/small-e-czech-finetuned-ner-wikiann
+Taken from: Hugging Face
+
+3.
+Name: OpenAI API
+Source: https://openai.com/blog/openai-api
+
+-------------------------------------------------------------------
