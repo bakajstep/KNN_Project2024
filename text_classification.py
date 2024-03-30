@@ -6,9 +6,9 @@ import zipfile
 
 from pagexml.helper.pagexml_helper import make_text_region_text
 from pagexml.parser import parse_pagexml_file
-from safetensors import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+import torch
 
 # https://github.com/roman-janik/diploma_thesis_program/blob/a23bfaa34d32f92cd17dc8b087ad97e9f5f0f3e6/train_ner_model.py#L28
 def parse_arguments():
