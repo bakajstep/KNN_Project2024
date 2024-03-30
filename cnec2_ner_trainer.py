@@ -216,7 +216,7 @@ def main():
     sentences_validate = []
     if "cnec2" in config["datasets"]:
         if not (os.path.exists(f"{datasets_dir}/cnec2.zip")):
-            get_cnec2_extended(config["datasets"]["cnec2"]["path"], datasets_dir, "cnec2")
+            get_cnec2_extended(config["datasets"]["cnec2"]["url_path"], datasets_dir, "cnec2")
 
         with zipfile.ZipFile(f"{datasets_dir}/cnec2.zip", 'r') as zip_ref:
             zip_ref.extractall(datasets_dir)
@@ -224,7 +224,7 @@ def main():
         dataset_info = [
             ("train.conll", sentences_train),
             ("test.conll", sentences_test),
-            ("validation.conll", sentences_validate)
+            ("dev.conll", sentences_validate)
         ]
 
         for filename, sentences_list in dataset_info:
