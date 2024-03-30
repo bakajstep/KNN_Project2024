@@ -17,6 +17,7 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
+
 def extract_sentences_from_pagexml(xml_file):
     doc = parse_pagexml_file(xml_file)
 
@@ -28,7 +29,7 @@ def extract_sentences_from_pagexml(xml_file):
 
 def find_zip_files(directory):
     zip_files = []
-    for root, dirs, files in os.walk(directory):
+    for root, dirs, files in os.walk(directory):  # pylint: disable=W0612
         for file in fnmatch.filter(files, '*.zip'):
             zip_files.append(os.path.join(root, file))
     return zip_files
@@ -53,7 +54,8 @@ def prediction_to_conll(out):
 
     for item in out:
         word = item["word"]
-        entity_tag = 'O' if item['entity_group'] == 'LABEL_0' else item['entity_group'].replace("LABEL_", "B-")
+        entity_tag = 'O' if item['entity_group'] == 'LABEL_0' else item['entity_group'].replace(
+            "LABEL_", "B-")
 
         # TODO change to format we use in our solution
         current_sentence.append(f"{word}\t_\t_\t{entity_tag}")

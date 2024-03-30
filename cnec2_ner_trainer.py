@@ -12,9 +12,8 @@ import torch
 from accelerate import Accelerator
 from conllu import parse
 from sklearn.metrics import f1_score
-from torch.utils.data import TensorDataset, random_split, DataLoader, RandomSampler, SequentialSampler
-from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, \
-    get_scheduler  # get_linear_schedule_with_warmup
+from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, get_scheduler
 from yaml import safe_load
 
 from parsers.cnec2_extended.cnec2_extended import get_cnec2_extended
@@ -35,7 +34,7 @@ def parse_arguments():
 def get_device():
     if torch.cuda.is_available():
         train_device = torch.device("cuda")
-        log_msg("Number of GPU available: {}".format(torch.cuda.device_count()))
+        log_msg(f"Number of GPU available: {torch.cuda.device_count()}")
         for i in range(torch.cuda.device_count()):
             log_msg(f"Available GPU {i}: {torch.cuda.get_device_name(i)}")
     else:
@@ -96,7 +95,10 @@ def get_attention_mask(conllu_sentences, tokenizer, max_length):
             sent_str,
             add_special_tokens=True,
             truncation=True,
-            max_length= 512, # max_length, # RuntimeError: The expanded size of the tensor (527) must match the existing size (512) at non-singleton dimension 1.  Target sizes: [32, 527].  Tensor sizes: [1, 512]
+            max_length=512,
+            # max_length, # RuntimeError: The expanded size of the tensor (527) must match
+            # the existing size (512) at non-singleton dimension 1.
+            # Target sizes: [32, 527].  Tensor sizes: [1, 512]
             pad_to_max_length=True,
             return_attention_mask=True,
             return_tensors='pt',
@@ -118,7 +120,8 @@ def get_new_labels(in_ids, lbls, lbll_map, tokenizer):
     # Convert tensor IDs to tokens using BertTokenizerFast
     tokens_dict = {}
     for tensor in in_ids:
-        tokens_dict.update({token_id: token for token_id, token in zip(tensor.tolist(), tokenizer.convert_ids_to_tokens(tensor.tolist()))})
+        tokens_dict.update({token_id: token for token_id, token in
+                            zip(tensor.tolist(), tokenizer.convert_ids_to_tokens(tensor.tolist()))})
 
     for (sen, orig_labels) in zip(in_ids, lbls):
         padded_labels = []
@@ -154,23 +157,28 @@ def log_msg(msg: str):
 
 
 def log_summary(exp_name: str, config: dict):
-    log_msg("{:<24}{}\n{:<24}{}".format(
-        "Name:", exp_name.removeprefix("exp_configs_ner/").removesuffix(".yaml"), "Description:", config["desc"]))
+    log_msg(
+        f"{'Name:':<24}{exp_name.removeprefix('exp_configs_ner/').removesuffix('.yaml')}\n"
+        f"{'Description:':<24}{config['desc']}")
     ct = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    log_msg("{:<24}{}\n{:<24}{}\n{:<24}{}\n".format(
-        "Start time:", ct, "Model:", config["model"]["name"],
-        "Datasets:", [dts["name"] for dts in config["datasets"].values()]))
+    log_msg(
+        f"{'Start time:':<24}{ct}\n{'Model:':<24}{config['model']['name']}\n"
+        f"{'Datasets:':<24}{[dts['name'] for dts in config['datasets'].values()]}\n")
 
     cf_t = config["training"]
-    log_msg("Parameters:\n{:<24}{}\n{:<24}{}".format(
-        "Num train epochs:", cf_t["num_train_epochs"], "Batch size:", cf_t["batch_size"]))
-    log_msg("{:<24}{}\n{:<24}{}\n{:<24}{}\n{:<24}{}".format(
-        "Learning rate:", cf_t["optimizer"]["learning_rate"], "Weight decay:", cf_t["optimizer"]["weight_decay"],
-        "Lr scheduler:",
-        cf_t["lr_scheduler"]["name"], "Warmup steps:", cf_t["lr_scheduler"]["num_warmup_steps"]))
-    log_msg("{:<24}{}\n{:<24}{}\n{:<24}{}".format(
-        "Beta1:", cf_t["optimizer"]["beta1"], "Beta2:", cf_t["optimizer"]["beta2"], "Epsilon:",
-        cf_t["optimizer"]["eps"]))
+    log_msg(
+        f"Parameters:\n"
+        f"{'Num train epochs:':<24}{cf_t['num_train_epochs']}\n"
+        f"{'Batch size:':<24}{cf_t['batch_size']}")
+    log_msg(
+        f"{'Learning rate:':<24}{cf_t['optimizer']['learning_rate']}\n"
+        f"{'Weight decay:':<24}{cf_t['optimizer']['weight_decay']}\n"
+        f"{'Lr scheduler:':<24}{cf_t['lr_scheduler']['name']}\n"
+        f"{'Warmup steps:':<24}{cf_t['lr_scheduler']['num_warmup_steps']}")
+    log_msg(
+        f"{'Beta1:':<24}{cf_t['optimizer']['beta1']}\n"
+        f"{'Beta2:':<24}{cf_t['optimizer']['beta2']}\n"
+        f"{'Epsilon:':<24}{cf_t['optimizer']['eps']}")
 
 
 def dataset_from_sentences(sentences, tokenizer, maximum_token_length):
@@ -199,11 +207,12 @@ def main():
     args = parse_arguments()
 
     # Load a config file.
-    with open(args.config, 'r') as config_file:
+    with open(args.config, 'r', encoding='utf-8') as config_file:
         config = safe_load(config_file)
 
     # Start logging, print experiment configuration
-    logging.basicConfig(filename=os.path.join(output_dir, "experiment_results.txt"), level=logging.INFO,
+    logging.basicConfig(filename=os.path.join(output_dir, "experiment_results.txt"),
+                        level=logging.INFO,
                         encoding='utf-8', format='%(message)s')
     log_msg("Experiment summary:\n")
     log_summary(args.config, config)
@@ -215,7 +224,7 @@ def main():
     sentences_test = []
     sentences_validate = []
     if "cnec2" in config["datasets"]:
-        if not (os.path.exists(f"{datasets_dir}/cnec2.zip")):
+        if not os.path.exists(f"{datasets_dir}/cnec2.zip"):
             get_cnec2_extended(config["datasets"]["cnec2"]["url_path"], datasets_dir, "cnec2")
 
         with zipfile.ZipFile(f"{datasets_dir}/cnec2.zip", 'r') as zip_ref:
@@ -237,7 +246,7 @@ def main():
         remove_files_by_extension(output_dir, '.conll')
 
     if "wikiann" in config["datasets"]:
-        if not (os.path.exists(f"{datasets_dir}/wikiann.zip")):
+        if not os.path.exists(f"{datasets_dir}/wikiann.zip"):
             prepare_wikiann(datasets_dir, "wikiann")
 
         with zipfile.ZipFile(f"{datasets_dir}/wikiann.zip", 'r') as zip_ref:
@@ -259,8 +268,9 @@ def main():
         remove_files_by_extension(output_dir, '.conll')
 
     if "slavic" in config["datasets"]:
-        if not (os.path.exists(f"{datasets_dir}/slavic.zip")):
-            prepare_slavic(config["datasets"]["slavic"]["pathTrain"], config["datasets"]["slavic"]["pathTest"],
+        if not os.path.exists(f"{datasets_dir}/slavic.zip"):
+            prepare_slavic(config["datasets"]["slavic"]["pathTrain"],
+                           config["datasets"]["slavic"]["pathTest"],
                            datasets_dir, "slavic")
 
         with zipfile.ZipFile(f"{datasets_dir}/slavic.zip", 'r') as zip_ref:
@@ -282,7 +292,7 @@ def main():
         remove_files_by_extension(output_dir, '.conll')
 
     if "medival" in config["datasets"]:
-        if not (os.path.exists(f"{datasets_dir}/medival.zip")):
+        if not os.path.exists(f"{datasets_dir}/medival.zip"):
             get_cnec2_extended(config["datasets"]["medival"]["path"], datasets_dir, "medival")
 
         with zipfile.ZipFile(f"{datasets_dir}/medival.zip", 'r') as zip_ref:
@@ -307,16 +317,17 @@ def main():
 
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])
-    
-    log_msg(conllu_to_string(sentences[0]))
-    TokenLength = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True)) for i in sentences]
 
-    maximum_token_length = max(TokenLength)
+    log_msg(conllu_to_string(sentences[0]))
+    token_length = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True))
+                    for i in sentences]
+
+    maximum_token_length = max(token_length)
 
     log_msg("Token lengths")
-    log_msg('Minimum  length: {:,} tokens'.format(min(TokenLength)))
-    log_msg('Maximum length: {:,} tokens'.format(max(TokenLength)))
-    log_msg('Median length: {:,} tokens'.format(int(np.median(TokenLength))))
+    log_msg(f'Minimum  length: {min(token_length):,} tokens')
+    log_msg(f'Maximum length: {max(token_length):,} tokens')
+    log_msg(f'Median length: {int(np.median(token_length)):,} tokens')
 
     labels = get_labels(sentences)
     unique_labels = get_unique_labels(sentences)
@@ -330,23 +341,15 @@ def main():
     train_dataset = dataset_from_sentences(sentences_train, tokenizer, maximum_token_length)
     val_dataset = dataset_from_sentences(sentences_validate, tokenizer, maximum_token_length)
 
-    log_msg('{:>5,} training samples'.format(len(train_dataset)))
-    log_msg('{:>5,} validation samples'.format(len(val_dataset)))
+    log_msg(f'{len(train_dataset):>5,} training samples')
+    log_msg(f'{len(val_dataset):>5,} validation samples')
 
     batch_size = int(config["training"]["batch_size"])
 
-    train_dataloader = DataLoader(train_dataset, sampler=RandomSampler(train_dataset), batch_size=batch_size)
-    validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset), batch_size=batch_size)    
-
-    # Test data.
-    test_sentences = sentences_test
-    test_labels = get_labels(test_sentences)
-    test_unique_labels = get_unique_labels(test_sentences)
-    test_label_map = get_labels_map(test_unique_labels)
-    # TODO is it needed? because it is unused
-    test_attention_masks, test_input_ids = get_attention_mask(test_sentences,
-                                                              tokenizer,
-                                                              maximum_token_length + 1)
+    train_dataloader = DataLoader(train_dataset, sampler=RandomSampler(train_dataset),
+                                  batch_size=batch_size)
+    validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset),
+                                       batch_size=batch_size)
 
     test_pt_input_ids = torch.stack(input_ids, dim=0)
     test_pt_attention_masks = torch.stack(attention_masks, dim=0)
@@ -356,11 +359,14 @@ def main():
 
     test_prediction_data = TensorDataset(test_pt_input_ids, test_pt_attention_masks, test_pt_labels)
     test_prediction_sampler = SequentialSampler(test_prediction_data)
-    test_prediction_dataloader = DataLoader(test_prediction_data, sampler=test_prediction_sampler, batch_size=batch_size)
+    test_prediction_dataloader = DataLoader(test_prediction_data, sampler=test_prediction_sampler,
+                                            batch_size=batch_size)
 
     # Model.
-    model = AutoModelForTokenClassification.from_pretrained(config["model"]["path"], num_labels=len(label_map) + 1,
-                                                            output_attentions=False, output_hidden_states=False)
+    model = AutoModelForTokenClassification.from_pretrained(config["model"]["path"],
+                                                            num_labels=len(label_map) + 1,
+                                                            output_attentions=False,
+                                                            output_hidden_states=False)
     model.cuda()
 
     # Load the AdamW optimizer
@@ -379,7 +385,7 @@ def main():
     num_training_steps = len(train_dataloader) * epochs
 
     # Create the learning rate scheduler.
-    config_scheduler = config["training"]["lr_scheduler"]    
+    config_scheduler = config["training"]["lr_scheduler"]
     scheduler = get_scheduler(
         config_scheduler["name"],
         optimizer=optimizer,
@@ -389,9 +395,10 @@ def main():
 
     accelerator = Accelerator()
 
-    model, optimizer, train_dataloader, validation_dataloader, test_prediction_dataloader, scheduler = accelerator.prepare(
-        model, optimizer, train_dataloader, validation_dataloader, test_prediction_dataloader, scheduler
-    )
+    (model, optimizer, train_dataloader, validation_dataloader, test_prediction_dataloader,
+     scheduler) = accelerator.prepare(
+        model, optimizer, train_dataloader, validation_dataloader, test_prediction_dataloader,
+        scheduler)
 
     # Setting the random seed for reproducibility, etc.
     seed_val = 42
@@ -403,8 +410,6 @@ def main():
 
     loss_values = []
 
-    # TODO evaluace behem trenovani jednotlivych epoch?
-    # https://huggingface.co/learn/nlp-course/en/chapter7/2?fw=pt
     #################
     # Training loop #
     #################
@@ -412,7 +417,7 @@ def main():
         ############
         # Training #
         ############
-        log_msg('======== Epoch {:} / {:} ========'.format(epoch_i + 1, epochs))
+        log_msg(f'======== Epoch {epoch_i + 1} / {epochs} ========')
         log_msg('Training...')
 
         total_loss = 0
@@ -423,7 +428,7 @@ def main():
 
             if step % 40 == 0 and not step == 0:
                 # Report progress.
-                log_msg('  Batch {:>5,}  of  {:>5,}.'.format(step, len(train_dataloader)))
+                log_msg(f'  Batch {step:>5,}  of  {len(train_dataloader):>5,}.')
 
             b_input_ids = batch[0].to(device)
             b_input_mask = batch[1].to(device)
@@ -431,7 +436,8 @@ def main():
 
             model.zero_grad()
 
-            outputs = model(b_input_ids, token_type_ids=None, attention_mask=b_input_mask, labels=b_labels)
+            outputs = model(b_input_ids, token_type_ids=None, attention_mask=b_input_mask,
+                            labels=b_labels)
 
             loss = outputs[0]
 
@@ -449,7 +455,7 @@ def main():
         avg_train_loss = total_loss / len(train_dataloader)
         loss_values.append(avg_train_loss)
 
-        log_msg("  Average training loss: {0:.2f}".format(avg_train_loss))
+        log_msg(f"  Average training loss: {avg_train_loss:.2f}")
 
         val_predictions, val_true_labels = [], []
 
@@ -510,17 +516,17 @@ def main():
         val_token_labels = []
 
         # For each of the input tokens in the dataset...
-        for i in range(len(all_val_true_labels)):
+        for i, label in enumerate(all_val_true_labels):
 
             # If it's not a token with a null label...
-            if not all_val_true_labels[i] == -100:
+            if label != -100:
                 # Add the prediction and the ground truth to their lists.
                 val_token_predictions.append(val_predicted_label_ids[i])
-                val_token_labels.append(all_val_true_labels[i])
+                val_token_labels.append(label)
 
         val_f1 = f1_score(val_token_labels, val_token_predictions, average='micro')
 
-        log_msg("F1 score: {:.2%}".format(val_f1))
+        log_msg(f"F1 score: {val_f1:.2%}")
 
         ################
         # Saving model #
@@ -533,7 +539,7 @@ def main():
             tokenizer.save_pretrained(model_dir)
 
     # Testing
-    log_msg('Predicting labels for {:,} test sentences...'.format(len(pt_input_ids)))
+    log_msg(f'Predicting labels for {len(pt_input_ids):,} test sentences...')
 
     # Put model in evaluation mode
     model.eval()
@@ -599,17 +605,18 @@ def main():
     real_token_labels = []
 
     # For each of the input tokens in the dataset...
-    for i in range(len(all_true_labels)):
+    for i, label in enumerate(all_true_labels):
 
         # If it's not a token with a null label...
-        if not all_true_labels[i] == -100:
+        if label != -100:
             # Add the prediction and the ground truth to their lists.
             real_token_predictions.append(predicted_label_ids[i])
-            real_token_labels.append(all_true_labels[i])
+            real_token_labels.append(label)
 
     f1 = f1_score(real_token_labels, real_token_predictions, average='micro')
 
-    log_msg("F1 score: {:.2%}".format(f1))
+    log_msg(f"F1 score: {f1:.2%}")
+
 
 if __name__ == "__main__":
     main()

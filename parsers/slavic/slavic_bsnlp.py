@@ -43,15 +43,17 @@ def convert_to_conll(annotations, raw_text):
 
 def prepare_datasets(zip_url, output_file_name, annotated_dirs, raw_dirs, output_dir):
     response = requests.get(zip_url)
-    zip_file = zipfile.ZipFile(BytesIO(response.content))
+    zip_file = zipfile.ZipFile(BytesIO(response.content))  # pylint: disable=R1732
 
     os.makedirs(output_dir, exist_ok=True)
 
     with open(os.path.join(output_dir, output_file_name), 'w', encoding='utf-8') as output_file:
         for annotated_dir, raw_dir in zip(annotated_dirs, raw_dirs):
             for zip_info in zip_file.infolist():
-                if zip_info.filename.startswith(annotated_dir) and zip_info.filename.endswith('.out'):
-                    raw_filename = zip_info.filename.replace(annotated_dir, raw_dir).replace('.out', '.txt')
+                if zip_info.filename.startswith(annotated_dir) and zip_info.filename.endswith(
+                        '.out'):
+                    raw_filename = zip_info.filename.replace(annotated_dir, raw_dir).replace('.out',
+                                                                                             '.txt')
 
                     annotations = load_annotations(zip_file, zip_info.filename)
                     raw_text = load_raw_text(zip_file, raw_filename)

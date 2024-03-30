@@ -25,7 +25,7 @@ def get_dataset(url_path, output_dir, dataset_name):
         os.makedirs(output_dir)
 
     for file_name in files_to_extract:
-        with zip_file.open(root_dir + file_name) as file:
+        with zip_file.open(root_dir + file_name) as file:  # pylint: disable=R1732
             lines = file.read().decode('utf-8').splitlines()
             processed_lines = []
             line_number = 1
@@ -41,7 +41,8 @@ def get_dataset(url_path, output_dir, dataset_name):
                             mapped_annotation = f"{prefix}-{mapped_label}"
                         else:
                             mapped_annotation = annotation
-                        processed_lines.append("\t".join([str(line_number), word, lemma, morph, mapped_annotation]))
+                        processed_lines.append(
+                            "\t".join([str(line_number), word, lemma, morph, mapped_annotation]))
                     else:
                         processed_lines.append("\t".join([str(line_number)] + parts))
                 else:
