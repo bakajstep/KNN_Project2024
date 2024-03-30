@@ -1,12 +1,13 @@
+import os
 import zipfile
 from io import BytesIO
 
-from conllu import parse
-
 import requests
 
+from parsers.util import zip_files
 
-def get_dataset(url_path):
+
+def get_dataset(url_path, output_dir, dataset_name):
     response = requests.get(url_path)
     zip_file = zipfile.ZipFile(BytesIO(response.content))
 
@@ -20,7 +21,8 @@ def get_dataset(url_path):
         "I": "ORG"
     }
 
-    file_contents = {}
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     for file_name in files_to_extract:
         with zip_file.open(root_dir + file_name) as file:
@@ -45,10 +47,14 @@ def get_dataset(url_path):
                 else:
                     processed_lines.append("")
                 line_number += 1
-            file_contents[file_name] = "\n".join(processed_lines)
 
-    return file_contents
+            # Zápis zpracovaného obsahu do souboru
+            output_file_path = os.path.join(output_dir, file_name)
+            with open(output_file_path, "w", encoding="utf-8") as output_file:
+                output_file.write("\n".join(processed_lines))
+
+            zip_files(output_dir, os.path.join(output_dir, f"{dataset_name}.zip"), ['.conll'])
 
 
-def get_cnec2_extended(url):
-    return get_dataset(url)
+def get_cnec2_extended(url, output_dir, dataset_name):
+    get_dataset(url, output_dir, dataset_name)

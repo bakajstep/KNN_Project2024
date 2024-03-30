@@ -1,25 +1,26 @@
+import argparse
+import datetime
+import glob
+import logging
+import os
 import random
-from io import BytesIO
+import zipfile
 from warnings import simplefilter
 
 import numpy as np
-from conllu import parse
-import requests
-import zipfile
-from sklearn.metrics import f1_score
-
-import argparse
-from yaml import safe_load
-from datasets.cnec2_extended import get_cnec2_extended
-
-from accelerate import Accelerator
-
-from torch.utils.data import TensorDataset, random_split, DataLoader, RandomSampler, SequentialSampler
-from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, get_scheduler # get_linear_schedule_with_warmup
 import torch
-import logging
-import os
-import datetime
+from accelerate import Accelerator
+from conllu import parse
+from sklearn.metrics import f1_score
+from torch.utils.data import TensorDataset, random_split, DataLoader, RandomSampler, SequentialSampler
+from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, \
+    get_scheduler  # get_linear_schedule_with_warmup
+from yaml import safe_load
+
+from parsers.cnec2_extended.cnec2_extended import get_cnec2_extended
+from parsers.slavic.slavic_bsnlp import prepare_slavic
+from parsers.util import remove_files_by_extension
+from parsers.wikiann_cs.wikiann_cs import prepare_wikiann
 
 
 # https://github.com/roman-janik/diploma_thesis_program/blob/a23bfaa34d32f92cd17dc8b087ad97e9f5f0f3e6/train_ner_model.py#L28
@@ -172,9 +173,28 @@ def log_summary(exp_name: str, config: dict):
         cf_t["optimizer"]["eps"]))
 
 
+def dataset_from_sentences(sentences, tokenizer, maximum_token_length):
+    labels = get_labels(sentences)
+    unique_labels = get_unique_labels(sentences)
+    label_map = get_labels_map(unique_labels)
+    attention_masks, input_ids = get_attention_mask(sentences,
+                                                    tokenizer,
+                                                    maximum_token_length + 1)
+    new_labels = get_new_labels(input_ids, labels, label_map, tokenizer)
+
+    pt_input_ids = torch.stack(input_ids, dim=0)
+    pt_attention_masks = torch.stack(attention_masks, dim=0)
+    pt_labels = torch.tensor(new_labels, dtype=torch.long)
+
+    dataset = TensorDataset(pt_input_ids, pt_attention_masks, pt_labels)
+
+    return dataset
+
+
 def main():
     model_dir = "../results/model"
     output_dir = "../results"
+    datasets_dir = "../results/datasets"
 
     args = parse_arguments()
 
@@ -191,10 +211,99 @@ def main():
 
     device = get_device()
 
-    sentences = []
+    sentences_train = []
+    sentences_test = []
+    sentences_validate = []
     if "cnec2" in config["datasets"]:
-        dataset_files = get_cnec2_extended(config["datasets"]["cnec2"]["url_path"])
-        sentences.extend(parse(dataset_files["train.conll"]))
+        if not (os.path.exists(f"{datasets_dir}/cnec2.zip")):
+            get_cnec2_extended(config["datasets"]["cnec2"]["url_path"], datasets_dir, "cnec2")
+
+        with zipfile.ZipFile(f"{datasets_dir}/cnec2.zip", 'r') as zip_ref:
+            zip_ref.extractall(datasets_dir)
+
+        dataset_info = [
+            ("train.conll", sentences_train),
+            ("test.conll", sentences_test),
+            ("dev.conll", sentences_validate)
+        ]
+
+        for filename, sentences_list in dataset_info:
+            file_path = os.path.join(datasets_dir, filename)
+            with open(file_path, 'r', encoding='utf-8') as file:
+                file_content = file.read()
+                sentences = parse(file_content)
+                sentences_list.extend(sentences)
+
+        remove_files_by_extension(output_dir, '.conll')
+
+    if "wikiann" in config["datasets"]:
+        if not (os.path.exists(f"{datasets_dir}/wikiann.zip")):
+            prepare_wikiann(datasets_dir, "wikiann")
+
+        with zipfile.ZipFile(f"{datasets_dir}/wikiann.zip", 'r') as zip_ref:
+            zip_ref.extractall(datasets_dir)
+
+        dataset_info = [
+            ("train.conll", sentences_train),
+            ("test.conll", sentences_test),
+            ("validation.conll", sentences_validate)
+        ]
+
+        for filename, sentences_list in dataset_info:
+            file_path = os.path.join(datasets_dir, filename)
+            with open(file_path, 'r', encoding='utf-8') as file:
+                file_content = file.read()
+                sentences = parse(file_content)
+                sentences_list.extend(sentences)
+
+        remove_files_by_extension(output_dir, '.conll')
+
+    if "slavic" in config["datasets"]:
+        if not (os.path.exists(f"{datasets_dir}/slavic.zip")):
+            prepare_slavic(config["datasets"]["slavic"]["pathTrain"], config["datasets"]["slavic"]["pathTest"],
+                           datasets_dir, "slavic")
+
+        with zipfile.ZipFile(f"{datasets_dir}/slavic.zip", 'r') as zip_ref:
+            zip_ref.extractall(datasets_dir)
+
+        dataset_info = [
+            ("train.conll", sentences_train),
+            ("test.conll", sentences_test),
+        ]
+
+        # Načtení a zpracování každého datasetu
+        for filename, sentences_list in dataset_info:
+            file_path = os.path.join(datasets_dir, filename)
+            with open(file_path, 'r', encoding='utf-8') as file:
+                file_content = file.read()
+                sentences = parse(file_content)
+                sentences_list.extend(sentences)
+
+        remove_files_by_extension(output_dir, '.conll')
+
+    if "medival" in config["datasets"]:
+        if not (os.path.exists(f"{datasets_dir}/medival.zip")):
+            get_cnec2_extended(config["datasets"]["medival"]["path"], datasets_dir, "medival")
+
+        with zipfile.ZipFile(f"{datasets_dir}/medival.zip", 'r') as zip_ref:
+            zip_ref.extractall(datasets_dir)
+
+        patterns = {
+            "*training*.conll": sentences_train,
+            "*test*.conll": sentences_test,
+            "*validation*.conll": sentences_validate
+        }
+
+        for pattern, sentences_list in patterns.items():
+            # Vytvoření plného vzoru cesty s použitím glob
+            full_pattern = os.path.join(datasets_dir, pattern)
+            for file_path in glob.glob(full_pattern):
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    file_content = file.read()
+                    sentences = parse(file_content)
+                    sentences_list.extend(sentences)
+
+        remove_files_by_extension(output_dir, '.conll')
 
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])
@@ -216,23 +325,13 @@ def main():
                                                     tokenizer,
                                                     maximum_token_length + 1)
     new_labels = get_new_labels(input_ids, labels, label_map, tokenizer)
-
     pt_input_ids = torch.stack(input_ids, dim=0)
-    pt_attention_masks = torch.stack(attention_masks, dim=0)
-    pt_labels = torch.tensor(new_labels, dtype=torch.long)
 
-    # Combine the training inputs into a TensorDataset.
-    dataset = TensorDataset(pt_input_ids, pt_attention_masks, pt_labels)
+    train_dataset = dataset_from_sentences(sentences_train, tokenizer, maximum_token_length)
+    val_dataset = dataset_from_sentences(sentences_validate, tokenizer, maximum_token_length)
 
-    # Create a 90-10 train-validation split.
-    train_size = int(0.9 * len(dataset))
-    val_size = len(dataset) - train_size
-
-    # Divide the dataset by randomly selecting samples.
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
-
-    log_msg('{:>5,} training samples'.format(train_size))
-    log_msg('{:>5,} validation samples'.format(val_size))
+    log_msg('{:>5,} training samples'.format(len(train_dataset)))
+    log_msg('{:>5,} validation samples'.format(len(val_dataset)))
 
     batch_size = int(config["training"]["batch_size"])
 
@@ -240,7 +339,7 @@ def main():
     validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset), batch_size=batch_size)    
 
     # Test data.
-    test_sentences = parse(dataset_files["test.conll"])
+    test_sentences = sentences_test
     test_labels = get_labels(test_sentences)
     test_unique_labels = get_unique_labels(test_sentences)
     test_label_map = get_labels_map(test_unique_labels)
@@ -248,7 +347,6 @@ def main():
     test_attention_masks, test_input_ids = get_attention_mask(test_sentences,
                                                               tokenizer,
                                                               maximum_token_length + 1)
-    test_new_labels = get_new_labels(test_input_ids, test_labels, test_label_map, tokenizer)
 
     test_pt_input_ids = torch.stack(input_ids, dim=0)
     test_pt_attention_masks = torch.stack(attention_masks, dim=0)

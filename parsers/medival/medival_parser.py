@@ -1,56 +1,47 @@
-import glob
-import zipfile
 import io
 import os
+import zipfile
+
 import requests
 
-
-def zip_files(files, zip_name, path):
-    with zipfile.ZipFile(zip_name, 'w') as zipf:
-        for file in files:
-            zipf.write(file, os.path.basename(file))
-
-    for f in glob.glob("{}dataset_*".format(path)):
-        os.remove(f)
+from parsers.util import zip_files, remove_files_by_extension
 
 
-def unzip_and_process(url, extract_to='.', name_dataset="conllu_dataset.zip"):
-    if not os.path.exists(extract_to):
-        os.makedirs(extract_to)
+def prepare_medival(url, output_dir='.', dataset_name="conllu_dataset.zip"):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     r = requests.get(url)
     z = zipfile.ZipFile(io.BytesIO(r.content))
-    z.extractall(path=extract_to)
+    z.extractall(path=output_dir)
 
     conllu_files = []  # Seznam souborů pro zazipování
 
     # Získání seznamu všech rozbalených souborů
-    unzipped_files = os.listdir(extract_to)
+    unzipped_files = os.listdir(output_dir)
 
     # Filtrace souborů, které končí na .sentence.txt a jejich zpracování
     for file in unzipped_files:
         if file.endswith('.sentences.txt'):
             base_name = file[:-len('.sentences.txt')]
-            text_file_path = os.path.join(extract_to, file)
-            annotations_file_path = os.path.join(extract_to, f"{base_name}.ner_tags.txt")
+            text_file_path = os.path.join(output_dir, file)
+            annotations_file_path = os.path.join(output_dir, f"{base_name}.ner_tags.txt")
 
             # Zkontrolujte, zda existuje odpovídající soubor s anotacemi
             if os.path.exists(annotations_file_path):
                 # Vytvoření jména výstupního souboru s příponou .conllu
-                conllu_filename = os.path.join(extract_to, f"{base_name}.conllu")
+                conllu_filename = os.path.join(output_dir, f"{base_name}.conll")
 
                 # Zpracujte soubory
                 process_files(text_file_path, annotations_file_path, conllu_filename)
-
-                # Přidání do seznamu pro zazipování
-                conllu_files.append(conllu_filename)
             else:
                 print(f"Nenalezen odpovídající soubor s anotacemi pro {file}")
 
-    # Zazipování a odstranění souborů
-    if conllu_files:
-        zip_name = os.path.join(extract_to, name_dataset)
-        zip_files(conllu_files, zip_name, extract_to)
+    zip_files(output_dir, os.path.join(output_dir, f"{dataset_name}.zip"), ['.conll'])
+
+    remove_files_by_extension(output_dir, '.txt')
+    remove_files_by_extension(output_dir, '.conll')
+    remove_files_by_extension(output_dir, '.docx')
 
 
 def process_files(text_file_path, annotations_file_path, output_file_path):

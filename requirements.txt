@@ -1,3 +1,4 @@
+datasets==2.18.0
 conllu==4.5.3
 numpy==1.24.3
 Requests==2.31.0
@@ -6,3 +7,4 @@ torch==2.0.0
 transformers==4.37.2
 accelerate~=0.18.0
 pagexml-tools==0.5.0
+PyYAML~=6.0.1
