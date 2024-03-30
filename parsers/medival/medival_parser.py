@@ -12,10 +12,8 @@ def prepare_medival(url, output_dir='.', dataset_name="conllu_dataset.zip"):
         os.makedirs(output_dir)
 
     r = requests.get(url)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
+    z = zipfile.ZipFile(io.BytesIO(r.content))  # pylint: disable=R1732
     z.extractall(path=output_dir)
-
-    conllu_files = []  # Seznam souborů pro zazipování
 
     # Získání seznamu všech rozbalených souborů
     unzipped_files = os.listdir(output_dir)
@@ -57,8 +55,3 @@ def process_files(text_file_path, annotations_file_path, output_file_path):
                 output_file.write(f"{token}\t_\t_\t_\t_\t_\t_\t_\t{annotation}\n")
 
             output_file.write("\n")  # Konec věty označený novým řádkem
-
-# Ukázka použití
-# url = 'https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-5024/named-entity-recognition-annotations-small.zip?sequence=2&isAllowed=y'
-# extract_to = './zip/'
-# unzip_and_process(url, extract_to)
