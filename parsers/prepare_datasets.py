@@ -12,8 +12,8 @@ def main(output_dir):
         output_dir,
         "cnec_dataset")
     prepare_slavic(
-        "https://bsnlp.cs.helsinki.fi/bsnlp-2019/TRAININGDATA_BSNLP_2019_shared_task.zip",
-        "https://bsnlp.cs.helsinki.fi/bsnlp-2019/TESTDATA_BSNLP_2019_shared_task.zip",
+        "https://bsnlp.cs.helsinki.fi/bsnlp-2021/data/bsnlp2021_train_r1.zip",
+        "https://bsnlp.cs.helsinki.fi/bsnlp-2021/data/bsnlp2021_test_v5.zip",
         output_dir,
         "slavic_dataset")
     prepare_medival(
