@@ -8,6 +8,7 @@ from parsers.util import zip_files, remove_files_by_extension
 
 
 def prepare_medival(url, output_dir='.', dataset_name="conllu_dataset.zip"):
+    print("prepare_medival function")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -19,7 +20,10 @@ def prepare_medival(url, output_dir='.', dataset_name="conllu_dataset.zip"):
     unzipped_files = os.listdir(output_dir)
 
     # Filtrace souborů, které končí na .sentence.txt a jejich zpracování
+    counter = 0
     for file in unzipped_files:
+        print("Processing medival dataset, file: ", counter)
+        counter = counter + 1
         if file.endswith('.sentences.txt'):
             base_name = file[:-len('.sentences.txt')]
             text_file_path = os.path.join(output_dir, file)
@@ -35,7 +39,11 @@ def prepare_medival(url, output_dir='.', dataset_name="conllu_dataset.zip"):
             else:
                 print(f"Nenalezen odpovídající soubor s anotacemi pro {file}")
 
+    print("before zip_files")
+
     zip_files(output_dir, os.path.join(output_dir, f"{dataset_name}.zip"), ['.conll'])
+
+    print("after zip_files")
 
     remove_files_by_extension(output_dir, '.txt')
     remove_files_by_extension(output_dir, '.conll')

@@ -326,6 +326,8 @@ def main():
             # Vytvoření plného vzoru cesty s použitím glob
             full_pattern = os.path.join(datasets_dir, pattern)
             for file_path in glob.glob(full_pattern):
+                print(f"Iterating over medival files, match: {file_path}")
+
                 with open(file_path, 'r', encoding='utf-8') as file:
                     file_content = file.read()
                     sentences = parse(file_content)

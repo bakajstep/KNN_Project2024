@@ -13,7 +13,7 @@ datasets:
   medival:
     name: "Medieval text"
     desc: "A Human-Annotated Dataset for Language Modeling and Named Entity Recognition in Medieval Documents"
-    url_path: "https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-5024/named-entity-recognition-annotations-large.zip?sequence=2&isAllowed=y"
+    url_path: "https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-5024/named-entity-recognition-annotations-small.zip"
   wikiann:
     name: "Wikiann"
     desc: "WikiANN (sometimes called PAN-X) is a multilingual named entity recognition dataset consisting of Wikipedia articles annotated"
