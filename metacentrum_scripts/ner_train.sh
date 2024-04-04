@@ -115,7 +115,7 @@ do
   printf "Start training\n"
 
   # Run the training script.
-  python cnec2_ner_trainer.py --config "$config_file" # --results_csv "$all_exp_results_csv"
+  python ner_trainer.py --config "$config_file" # --results_csv "$all_exp_results_csv"
   printf "Training exit code: %s\n" "$?"
 
   # Save results
