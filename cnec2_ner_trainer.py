@@ -350,13 +350,23 @@ def main():
     log_msg(f'Maximum length: {max(token_length):,} tokens')
     log_msg(f'Median length: {int(np.median(token_length)):,} tokens')
 
+    print(f"sentences: {sentences}")
+
     labels = get_labels(sentences)
     unique_labels = get_unique_labels(sentences)
     label_map = get_labels_map(unique_labels)
     attention_masks, input_ids = get_attention_mask(sentences,
                                                     tokenizer,
                                                     maximum_token_length + 1)
+    
+    # print(f"input_ids: {input_ids}")
+    print(f"labels: {labels}")
+    print(f"label_map: {label_map}")
+
     new_labels = get_new_labels(input_ids, labels, label_map, tokenizer)
+
+    print(f"new_labels: {new_labels}")
+
     pt_input_ids = torch.stack(input_ids, dim=0)
 
     train_dataset = dataset_from_sentences(sentences_train, tokenizer, maximum_token_length)
@@ -377,6 +387,10 @@ def main():
     test_pt_labels = torch.tensor(new_labels, dtype=torch.long)
 
     batch_size = 32
+
+    print(f"{test_pt_input_ids.size()}")
+    print(f"{test_pt_attention_masks.size()}")
+    print(f"{test_pt_labels.size()}")
 
     test_prediction_data = TensorDataset(test_pt_input_ids, test_pt_attention_masks, test_pt_labels)
     test_prediction_sampler = SequentialSampler(test_prediction_data)
