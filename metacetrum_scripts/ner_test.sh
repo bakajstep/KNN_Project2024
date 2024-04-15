@@ -18,7 +18,7 @@
 trap 'clean_scratch' TERM EXIT
 
 HOMEPATH=/storage/praha1/home/$PBS_O_LOGNAME
-DATAPATH=$HOMEPATH/datasets/            # folder with datasets
+DATAPATH=$HOMEPATH/test_dataset/            # folder with dataset
 RESPATH=$HOMEPATH/program/results/      # store results in this folder
 HOSTNAME=$(hostname -f)                 # hostname of local machine
 
@@ -54,13 +54,13 @@ git checkout "$branch"
 cd ../..
 
 # Prepare directory with results
-#printf "Prepare directory with results\n"
-#if [ ! -d "$HOMEPATH"/program/results/ ]; then # test if dir exists
-#  mkdir "$HOMEPATH"/program/ "$HOMEPATH"/program/results/
-#fi
+printf "Prepare directory with results\n"
+if [ ! -d "$HOMEPATH"/program/results/ ]; then # test if dir exists
+  mkdir "$HOMEPATH"/program/ "$HOMEPATH"/program/results/
+fi
 
 # Prepare local directory with results
-#mkdir program/results
+mkdir program/results
 
 # Prepare environment
 printf "Prepare environment\n"
@@ -104,7 +104,7 @@ printf "\nPreparation took %s seconds, starting testing...\n" $(($(date +%s) - s
 # python3 cnec2_ner_trainer.py
 # printf "Training exit code: %s\n" "$?"
 
-cp -R "$DATAPATH/pageXml" .
+#cp -R "$DATAPATH/pageXml" .
 
 model_idx=0
 for model_file in $model_list
@@ -118,7 +118,7 @@ do
   printf "Start testing\n"
 
   # Run the training script.
-  python text_classification.py --model "${RESPATH}${model_file}" # --results_csv "$all_exp_results_csv"
+  python ner_test.py --model "${RESPATH}${model_file}" --dataset "${DATAPATH}${dataset}" # --results_csv "$all_exp_results_csv"
   printf "Testing exit code: %s\n" "$?"
 
   # Save results
@@ -133,13 +133,13 @@ do
   cp "$model_file" "$new_model_dir"
 done
 
-result_folder="classification_results"
+#result_folder="classification_results"
 
-if [ ! -d "${RESPATH}${result_folder}" ]; then # test if dir exists
-  mkdir "${RESPATH}${result_folder}"
-fi
+#if [ ! -d "${RESPATH}${result_folder}" ]; then # test if dir exists
+#  mkdir "${RESPATH}${result_folder}"
+#fi
 
-cp *.conll "${RESPATH}${result_folder}"
+#cp *.conll "${RESPATH}${result_folder}"
 
 # clean the SCRATCH directory
 clean_scratch

@@ -7,12 +7,14 @@
 # Arguments:
 # 1. git branch name
 # 2. model name (directory)
-# 3. walltime in format HH:MM:SS
+# 3. dataset path
+# 4. walltime in format HH:MM:SS
 
 BRANCHNAME=$1
 MODEL=$2
-JTIMEOUT=$3
+DATASET=$3
+JTIMEOUT=$4
 SHOUR=$(echo "$JTIMEOUT" | cut -d: -f1)
 STIME=$((SHOUR - 1))
 
-qsub -v branch="$BRANCHNAME",stime="$STIME",model="$MODEL" -l walltime="$JTIMEOUT" ./ner_test.sh
+qsub -v branch="$BRANCHNAME",stime="$STIME",model="$MODEL",dataset="$DATASET" -l walltime="$JTIMEOUT" ./ner_test.sh
