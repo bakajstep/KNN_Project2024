@@ -20,6 +20,7 @@ from parsers.cnec2_extended.cnec2_extended import get_cnec2_extended
 from parsers.slavic.slavic_bsnlp import prepare_slavic
 from parsers.util import remove_files_by_extension
 from parsers.wikiann_cs.wikiann_cs import prepare_wikiann
+from parsers.medival.medival_parser import prepare_medival
 
 
 # https://github.com/roman-janik/diploma_thesis_program/blob/a23bfaa34d32f92cd17dc8b087ad97e9f5f0f3e6/train_ner_model.py#L28
@@ -224,7 +225,9 @@ def main():
     sentences_test = []
     sentences_validate = []
     if "cnec2" in config["datasets"]:
+        log_msg("Using cnec2 dataset")
         if not os.path.exists(f"{datasets_dir}/cnec2.zip"):
+            log_msg("Downloading cnec2 dataset")
             get_cnec2_extended(config["datasets"]["cnec2"]["url_path"], datasets_dir, "cnec2")
 
         with zipfile.ZipFile(f"{datasets_dir}/cnec2.zip", 'r') as zip_ref:
@@ -244,9 +247,14 @@ def main():
                 sentences_list.extend(sentences)
 
         remove_files_by_extension(output_dir, '.conll')
+        print(f"Cnec2: sentences_train: {len(sentences_train)},"
+              f" sentences_test: {len(sentences_test)},"
+              f" sentences_validate: {len(sentences_validate)}")
 
     if "wikiann" in config["datasets"]:
+        log_msg("Using wikiann dataset")
         if not os.path.exists(f"{datasets_dir}/wikiann.zip"):
+            log_msg("Downloading wikiann dataset")
             prepare_wikiann(datasets_dir, "wikiann")
 
         with zipfile.ZipFile(f"{datasets_dir}/wikiann.zip", 'r') as zip_ref:
@@ -266,11 +274,16 @@ def main():
                 sentences_list.extend(sentences)
 
         remove_files_by_extension(output_dir, '.conll')
+        print(f"Wikiann: sentences_train: {len(sentences_train)},"
+              f" sentences_test: {len(sentences_test)},"
+              f" sentences_validate: {len(sentences_validate)}")
 
     if "slavic" in config["datasets"]:
+        log_msg("Using slavic dataset")
         if not os.path.exists(f"{datasets_dir}/slavic.zip"):
-            prepare_slavic(config["datasets"]["slavic"]["pathTrain"],
-                           config["datasets"]["slavic"]["pathTest"],
+            log_msg("Downloading slavic dataset")
+            prepare_slavic(config["datasets"]["slavic"]["url_train"],
+                           config["datasets"]["slavic"]["url_test"],
                            datasets_dir, "slavic")
 
         with zipfile.ZipFile(f"{datasets_dir}/slavic.zip", 'r') as zip_ref:
@@ -290,10 +303,15 @@ def main():
                 sentences_list.extend(sentences)
 
         remove_files_by_extension(output_dir, '.conll')
+        print(f"Slavic: sentences_train: {len(sentences_train)},"
+              f" sentences_test: {len(sentences_test)},"
+              f" sentences_validate: {len(sentences_validate)}")
 
     if "medival" in config["datasets"]:
+        log_msg("Using medival dataset")
         if not os.path.exists(f"{datasets_dir}/medival.zip"):
-            get_cnec2_extended(config["datasets"]["medival"]["path"], datasets_dir, "medival")
+            log_msg("Downloading medival dataset")
+            prepare_medival(config["datasets"]["medival"]["url_path"], datasets_dir, "medival")
 
         with zipfile.ZipFile(f"{datasets_dir}/medival.zip", 'r') as zip_ref:
             zip_ref.extractall(datasets_dir)
@@ -314,6 +332,9 @@ def main():
                     sentences_list.extend(sentences)
 
         remove_files_by_extension(output_dir, '.conll')
+        print(f"medival: sentences_train: {len(sentences_train)},"
+              f" sentences_test: {len(sentences_test)},"
+              f" sentences_validate: {len(sentences_validate)}")
 
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])

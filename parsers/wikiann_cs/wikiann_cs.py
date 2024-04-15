@@ -15,10 +15,12 @@ def dataset_to_conll(dataset, filename, subset, tag_names, output_dir):
     full_path = os.path.join(output_dir, filename)
 
     with open(full_path, "w", encoding="utf-8") as file:
+        row_number = 0
         for sample in dataset[subset]:
             for token, num_tag in zip(sample["tokens"], sample["ner_tags"]):
                 tag = num_to_tag(num_tag, tag_names)
-                file.write(f"{token} {tag}\n")
+                file.write(f"{row_number}\t{token}\t{tag}\n")
+                row_number += 1
             file.write("\n")
 
 

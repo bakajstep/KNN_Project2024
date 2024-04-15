@@ -47,11 +47,13 @@ def process_files(text_file_path, annotations_file_path, output_file_path):
             open(annotations_file_path, 'r', encoding='utf-8') as annotations_file, \
             open(output_file_path, 'w', encoding='utf-8') as output_file:
 
+        line_number = 0
         for line_text, line_annotations in zip(text_file, annotations_file):
             tokens = line_text.strip().split()
             annotations = line_annotations.strip().split()
 
             for token, annotation in zip(tokens, annotations):
-                output_file.write(f"{token}\t_\t_\t_\t_\t_\t_\t_\t{annotation}\n")
+                output_file.write(f"{line_number}\t{token}\t_\t_\t_\t_\t_\t_\t_\t{annotation}\n")
+                line_number = line_number + 1
 
             output_file.write("\n")  # Konec věty označený novým řádkem

@@ -26,6 +26,7 @@ def load_raw_text(zip_file, path):
 def convert_to_conll(annotations, raw_text):
     conll_lines = []
     sentences = raw_text.split('. ')
+    line_number = 0
     for sentence in sentences:
         tokens = sentence.split()
         prev_tag = 'O'
@@ -35,8 +36,9 @@ def convert_to_conll(annotations, raw_text):
             tag = annotations.get(token, 'O')
             bio_tag = 'B-' + tag if tag != 'O' and (
                     prev_tag == 'O' or prev_tag != tag) else 'I-' + tag if tag != 'O' else 'O'
-            conll_lines.append(f"{token}\t{bio_tag}")
+            conll_lines.append(f"{line_number}\t{token}\t{bio_tag}")
             prev_tag = tag
+            line_number += 1
         conll_lines.append("")
     return "\n".join(conll_lines)
 
@@ -66,15 +68,23 @@ def prepare_slavic(zip_url_training, zip_url_validation, output_dir, dataset_nam
     prepare_datasets(
         zip_url_training,
         "train.conll",
-        ["training_pl_cs_ru_bg_rc1/annotated/cs/"],
-        ["training_pl_cs_ru_bg_rc1/raw/cs/"],
+        ["bsnlp2021_train_r1/annotated/asia_bibi/cs/",
+         "bsnlp2021_train_r1/annotated/brexit/cs/",
+         "bsnlp2021_train_r1/annotated/nord_stream/cs/",
+         "bsnlp2021_train_r1/annotated/ryanair/cs/",
+         "bsnlp2021_train_r1/annotated/other/cs/"],
+        ["bsnlp2021_train_r1/raw/asia_bibi/cs/",
+         "bsnlp2021_train_r1/raw/brexit/cs/",
+         "bsnlp2021_train_r1/raw/nord_stream/cs/",
+         "bsnlp2021_train_r1/raw/ryanair/cs/",
+         "bsnlp2021_train_r1/raw/other/cs/"],
         output_dir
     )
     prepare_datasets(
         zip_url_validation,
         "test.conll",
-        ["annotated/nord_stream/cs/", "annotated/ryanair/cs/"],
-        ["raw/nord_stream/cs/", "raw/ryanair/cs/"],
+        ["annotated_corrected/covid-19/cs/", "annotated_corrected/us_election_2020/cs/"],
+        ["raw/covid-19/cs/", "raw/us_election_2020/cs/"],
         output_dir
     )
     zip_files(output_dir, os.path.join(output_dir, f"{dataset_name}.zip"), ['.conll'])
