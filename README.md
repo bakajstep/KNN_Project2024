@@ -23,7 +23,7 @@ The following table captures the performances of the used models.
 
 | Model                    | Configuration                              | F1 score --- own (%) | F1 score --- target (%) |
 | ------------------------ | ------------------------------------------ | -------------------- | ----------------------- |
-| BERT Fine-Tuned, Custom  | [YAML](configs/cnec_lr_5e5_12_epochs.yaml) | 75.48                | ---                     |
+| BERT Fine-Tuned, Custom  | [YAML](configs/cnec_lr_5e5_12_epochs.yaml) | 75.48                | 71.04                   |
 
 Note:
 - **F1 score --- own** --- the performance on the testing subset of the data used for training
