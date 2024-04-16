@@ -336,8 +336,28 @@ def main():
               f" sentences_test: {len(sentences_test)},"
               f" sentences_validate: {len(sentences_validate)}")
 
+    dataset_dir = os.path.dirname(args.dataset)
+
+    with zipfile.ZipFile(f"{args.dataset}", 'r') as zip_ref:
+        zip_ref.extractall(dataset_dir)
+
+    filename = "test.conll"
+    #sentences_list = sentences_test
+
+    #dataset_info = [
+    #    ("test.conll", sentences_test),
+    #]
+
+    # Načtení a zpracování každého datasetu
+    #for filename, sentences_list in dataset_info:
+    file_path = os.path.join(dataset_dir, filename)
+    with open(file_path, 'r', encoding='utf-8') as file:
+        file_content = file.read()
+        sentences = parse(file_content)
+        #sentences_list.extend(sentences)
+
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-    tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])
+    tokenizer = AutoTokenizer.from_pretrained("/storage/brno2/home/xchoch09/program/results/2024-04-04-14-14-cnec_lr_5e5_12_epochs-2h/model/")
 
     log_msg(conllu_to_string(sentences[0]))
     token_length = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True))
@@ -384,10 +404,7 @@ def main():
                                             batch_size=batch_size)
 
     # Model.
-    model = AutoModelForTokenClassification.from_pretrained(config["model"]["path"],
-                                                            num_labels=len(label_map) + 1,
-                                                            output_attentions=False,
-                                                            output_hidden_states=False)
+    model = AutoModelForTokenClassification.from_pretrained("/storage/brno2/home/xchoch09/program/results/2024-04-04-14-14-cnec_lr_5e5_12_epochs-2h/model/")
     model.cuda()
 
     # Load the AdamW optimizer
