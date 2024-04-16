@@ -104,31 +104,31 @@ printf "\nPreparation took %s seconds, starting training...\n" $(($(date +%s) - 
 # printf "Training exit code: %s\n" "$?"
 
 config_idx=0
-for config_file in $config_list
-do
-  config_name=${config_file#*/}
-  config_name=${config_name%.*}
-  printf -- '-%.0s' {1..180}; printf "\n%s. experiment\n" $config_idx
-  printf "\nConfig: %s\n" "$config_name"
+config_file="configs/tmp_config.yaml"
 
-  # Start training
-  printf "Start training\n"
+config_name=${config_file#*/}
+config_name=${config_name%.*}
+printf -- '-%.0s' {1..180}; printf "\n%s. experiment\n" $config_idx
+printf "\nConfig: %s\n" "$config_name"
 
-  # Run the training script.
-  python cnec2_ner_trainer.py --config "$config_file" # --results_csv "$all_exp_results_csv"
-  printf "Training exit code: %s\n" "$?"
+# Start training
+printf "Start training\n"
 
-  # Save results
-  printf "\nSave results\n"
-  new_model_dir=$RESPATH/$(date +%Y-%m-%d-%H-%M)-$config_name-${stime}h
-  mkdir "$new_model_dir"
-  grep -vx '^Loading.*arrow' ../results/experiment_results.txt > ../results/experiment_results_f.txt # Remove logs from dataset load
-  printf -- '-%.0s' {1..180} >> "$all_exp_results"; printf "\n%s. experiment\n" $config_idx >> "$all_exp_results"
-  ((config_idx++))
-  cat ../results/experiment_results_f.txt >> "$all_exp_results"
-  mv ../results/* "$new_model_dir"
-  cp "$config_file" "$new_model_dir"
-done
+# Run the training script.
+python cnec2_ner_trainer.py --config "$config_file" --model "${RESPATH}2024-04-04-14-14-cnec_lr_5e5_12_epochs-2h/model/" --dataset "$HOMEPATH/test_dataset/cnec2.zip" # --results_csv "$all_exp_results_csv"
+printf "Training exit code: %s\n" "$?"
+
+# Save results
+printf "\nSave results\n"
+new_model_dir=$RESPATH/$(date +%Y-%m-%d-%H-%M)-$config_name-${stime}h
+mkdir "$new_model_dir"
+grep -vx '^Loading.*arrow' ../results/experiment_results.txt > ../results/experiment_results_f.txt # Remove logs from dataset load
+printf -- '-%.0s' {1..180} >> "$all_exp_results"; printf "\n%s. experiment\n" $config_idx >> "$all_exp_results"
+((config_idx++))
+cat ../results/experiment_results_f.txt >> "$all_exp_results"
+mv ../results/* "$new_model_dir"
+cp "$config_file" "$new_model_dir"
+
 
 # clean the SCRATCH directory
 clean_scratch

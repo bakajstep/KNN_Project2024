@@ -28,6 +28,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', required=True, help='Training configuration file.')
     # parser.add_argument('--results_csv', required=True, help='Results CSV file.')
+    parser.add_argument('--model', required=True, help='Training configuration file.')
+    parser.add_argument('--dataset', required=True, help='Training configuration file.')
     args = parser.parse_args()
     return args
 
@@ -223,118 +225,7 @@ def main():
 
     sentences_train = []
     sentences_test = []
-    sentences_validate = []
-    if "cnec2" in config["datasets"]:
-        log_msg("Using cnec2 dataset")
-        if not os.path.exists(f"{datasets_dir}/cnec2.zip"):
-            log_msg("Downloading cnec2 dataset")
-            get_cnec2_extended(config["datasets"]["cnec2"]["url_path"], datasets_dir, "cnec2")
-
-        with zipfile.ZipFile(f"{datasets_dir}/cnec2.zip", 'r') as zip_ref:
-            zip_ref.extractall(datasets_dir)
-
-        dataset_info = [
-            ("train.conll", sentences_train),
-            ("test.conll", sentences_test),
-            ("dev.conll", sentences_validate)
-        ]
-
-        for filename, sentences_list in dataset_info:
-            file_path = os.path.join(datasets_dir, filename)
-            with open(file_path, 'r', encoding='utf-8') as file:
-                file_content = file.read()
-                sentences = parse(file_content)
-                sentences_list.extend(sentences)
-
-        remove_files_by_extension(output_dir, '.conll')
-        print(f"Cnec2: sentences_train: {len(sentences_train)},"
-              f" sentences_test: {len(sentences_test)},"
-              f" sentences_validate: {len(sentences_validate)}")
-
-    if "wikiann" in config["datasets"]:
-        log_msg("Using wikiann dataset")
-        if not os.path.exists(f"{datasets_dir}/wikiann.zip"):
-            log_msg("Downloading wikiann dataset")
-            prepare_wikiann(datasets_dir, "wikiann")
-
-        with zipfile.ZipFile(f"{datasets_dir}/wikiann.zip", 'r') as zip_ref:
-            zip_ref.extractall(datasets_dir)
-
-        dataset_info = [
-            ("train.conll", sentences_train),
-            ("test.conll", sentences_test),
-            ("validation.conll", sentences_validate)
-        ]
-
-        for filename, sentences_list in dataset_info:
-            file_path = os.path.join(datasets_dir, filename)
-            with open(file_path, 'r', encoding='utf-8') as file:
-                file_content = file.read()
-                sentences = parse(file_content)
-                sentences_list.extend(sentences)
-
-        remove_files_by_extension(output_dir, '.conll')
-        print(f"Wikiann: sentences_train: {len(sentences_train)},"
-              f" sentences_test: {len(sentences_test)},"
-              f" sentences_validate: {len(sentences_validate)}")
-
-    if "slavic" in config["datasets"]:
-        log_msg("Using slavic dataset")
-        if not os.path.exists(f"{datasets_dir}/slavic.zip"):
-            log_msg("Downloading slavic dataset")
-            prepare_slavic(config["datasets"]["slavic"]["url_train"],
-                           config["datasets"]["slavic"]["url_test"],
-                           datasets_dir, "slavic")
-
-        with zipfile.ZipFile(f"{datasets_dir}/slavic.zip", 'r') as zip_ref:
-            zip_ref.extractall(datasets_dir)
-
-        dataset_info = [
-            ("train.conll", sentences_train),
-            ("test.conll", sentences_test),
-        ]
-
-        # Načtení a zpracování každého datasetu
-        for filename, sentences_list in dataset_info:
-            file_path = os.path.join(datasets_dir, filename)
-            with open(file_path, 'r', encoding='utf-8') as file:
-                file_content = file.read()
-                sentences = parse(file_content)
-                sentences_list.extend(sentences)
-
-        remove_files_by_extension(output_dir, '.conll')
-        print(f"Slavic: sentences_train: {len(sentences_train)},"
-              f" sentences_test: {len(sentences_test)},"
-              f" sentences_validate: {len(sentences_validate)}")
-
-    if "medival" in config["datasets"]:
-        log_msg("Using medival dataset")
-        if not os.path.exists(f"{datasets_dir}/medival.zip"):
-            log_msg("Downloading medival dataset")
-            prepare_medival(config["datasets"]["medival"]["url_path"], datasets_dir, "medival")
-
-        with zipfile.ZipFile(f"{datasets_dir}/medival.zip", 'r') as zip_ref:
-            zip_ref.extractall(datasets_dir)
-
-        patterns = {
-            "*training*.conll": sentences_train,
-            "*test*.conll": sentences_test,
-            "*validation*.conll": sentences_validate
-        }
-
-        for pattern, sentences_list in patterns.items():
-            # Vytvoření plného vzoru cesty s použitím glob
-            full_pattern = os.path.join(datasets_dir, pattern)
-            for file_path in glob.glob(full_pattern):
-                with open(file_path, 'r', encoding='utf-8') as file:
-                    file_content = file.read()
-                    sentences = parse(file_content)
-                    sentences_list.extend(sentences)
-
-        remove_files_by_extension(output_dir, '.conll')
-        print(f"medival: sentences_train: {len(sentences_train)},"
-              f" sentences_test: {len(sentences_test)},"
-              f" sentences_validate: {len(sentences_validate)}")
+    sentences_validate = []    
 
     dataset_dir = os.path.dirname(args.dataset)
 
@@ -357,7 +248,7 @@ def main():
         #sentences_list.extend(sentences)
 
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-    tokenizer = AutoTokenizer.from_pretrained("/storage/brno2/home/xchoch09/program/results/2024-04-04-14-14-cnec_lr_5e5_12_epochs-2h/model/")
+    tokenizer = AutoTokenizer.from_pretrained(args.model)
 
     log_msg(conllu_to_string(sentences[0]))
     token_length = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True))
@@ -379,18 +270,18 @@ def main():
     new_labels = get_new_labels(input_ids, labels, label_map, tokenizer)
     pt_input_ids = torch.stack(input_ids, dim=0)
 
-    train_dataset = dataset_from_sentences(sentences_train, tokenizer, maximum_token_length)
-    val_dataset = dataset_from_sentences(sentences_validate, tokenizer, maximum_token_length)
+    #train_dataset = dataset_from_sentences(sentences_train, tokenizer, maximum_token_length)
+    #val_dataset = dataset_from_sentences(sentences_validate, tokenizer, maximum_token_length)
 
-    log_msg(f'{len(train_dataset):>5,} training samples')
-    log_msg(f'{len(val_dataset):>5,} validation samples')
+    #log_msg(f'{len(train_dataset):>5,} training samples')
+    #log_msg(f'{len(val_dataset):>5,} validation samples')
 
     batch_size = int(config["training"]["batch_size"])
 
-    train_dataloader = DataLoader(train_dataset, sampler=RandomSampler(train_dataset),
-                                  batch_size=batch_size)
-    validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset),
-                                       batch_size=batch_size)
+    #train_dataloader = DataLoader(train_dataset, sampler=RandomSampler(train_dataset),
+    #                              batch_size=batch_size)
+    #validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset),
+    #                                   batch_size=batch_size)
 
     test_pt_input_ids = torch.stack(input_ids, dim=0)
     test_pt_attention_masks = torch.stack(attention_masks, dim=0)
@@ -404,7 +295,7 @@ def main():
                                             batch_size=batch_size)
 
     # Model.
-    model = AutoModelForTokenClassification.from_pretrained("/storage/brno2/home/xchoch09/program/results/2024-04-04-14-14-cnec_lr_5e5_12_epochs-2h/model/")
+    model = AutoModelForTokenClassification.from_pretrained(args.model)
     model.cuda()
 
     # Load the AdamW optimizer
@@ -433,9 +324,9 @@ def main():
 
     accelerator = Accelerator()
 
-    (model, optimizer, train_dataloader, validation_dataloader, test_prediction_dataloader,
+    (model, optimizer, test_prediction_dataloader,
      scheduler) = accelerator.prepare(
-        model, optimizer, train_dataloader, validation_dataloader, test_prediction_dataloader,
+        model, optimizer, test_prediction_dataloader,
         scheduler)
 
     # Setting the random seed for reproducibility, etc.
