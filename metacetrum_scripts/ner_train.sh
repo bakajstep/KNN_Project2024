@@ -18,7 +18,7 @@
 trap 'clean_scratch' TERM EXIT
 
 HOMEPATH=/storage/praha1/home/$PBS_O_LOGNAME
-DATAPATH=$HOMEPATH/datasets/            # folder with datasets
+DATAPATH=$HOMEPATH/program/datasets/            # folder with datasets
 RESPATH=$HOMEPATH/program/results/      # store results in this folder
 HOSTNAME=$(hostname -f)                 # hostname of local machine
 
@@ -61,6 +61,18 @@ fi
 
 # Prepare local directory with results
 mkdir program/results
+
+# Prepare directory with datasets
+printf "Prepare directory with datasets\n"
+if [ ! -d "$DATAPATH" ]; then # test if dir exists
+  mkdir "$DATAPATH"  
+fi
+
+# Prepare local directory with datasets
+mkdir program/datasets
+
+# Copy converted datasets if they are created
+cp -R "$DATAPATH" program/datasets
 
 # Prepare environment
 printf "Prepare environment\n"
@@ -129,6 +141,9 @@ do
   mv ../results/* "$new_model_dir"
   cp "$config_file" "$new_model_dir"
 done
+
+# Copy the datasets into the directory in the storage.
+cp program/datasets/*.zip "${DATAPATH}"
 
 # clean the SCRATCH directory
 clean_scratch
