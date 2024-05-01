@@ -36,7 +36,7 @@ def convert_to_conll(annotations, raw_text):
             tag = annotations.get(token, 'O')
             bio_tag = 'B-' + tag if tag != 'O' and (
                     prev_tag == 'O' or prev_tag != tag) else 'I-' + tag if tag != 'O' else 'O'
-            conll_lines.append(f"{line_number}\t{token}\t{bio_tag}")
+            conll_lines.append(f"{line_number}\t{token}\t_\t_\t_\t_\t_\t_\t_\t{bio_tag}")
             prev_tag = tag
             line_number += 1
         conll_lines.append("")

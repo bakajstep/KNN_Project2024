@@ -1,0 +1,26 @@
+desc: "Baseline experiment. Learning rate scheduler is linear, training 5 epochs on CNEC2 dataset."
+
+model:
+  name: "BERT"
+  desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
+  path: "google-bert/bert-base-uncased"
+
+datasets:
+  medival:
+    name: "Medieval text"
+    desc: "A Human-Annotated Dataset for Language Modeling and Named Entity Recognition in Medieval Documents"
+    url_path: "https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-5024/named-entity-recognition-annotations-small.zip?sequence=2&isAllowed=y"
+
+training:
+  num_train_epochs: 5
+  batch_size: 32
+
+  optimizer:
+    learning_rate: 5e-5
+    weight_decay: 0.01
+    beta1: 0.9
+    beta2: 0.999
+    eps: 1e-8
+  lr_scheduler:
+    name: "linear"
+    num_warmup_steps: 0

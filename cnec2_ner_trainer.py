@@ -237,6 +237,18 @@ def postprocess(predictions, labels, label_names):
     ]
     return true_labels, true_predictions
 
+def stream_files_from_zip(zip_path, pattern):
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        # Vytvoření seznamu názvů souborů, které odpovídají zadanému vzoru
+        file_list = [name for name in zip_ref.namelist() if glob.fnmatch.fnmatch(name, pattern)]
+        for filename in file_list:
+            # Otevření souboru přímo z archivu
+            with zip_ref.open(filename) as file:
+                # Přečtení obsahu souboru
+                file_content = file.read().decode('utf-8')
+                sentences = parse(file_content)
+                yield sentences  # Použití generátoru pro streamování vět
+
 
 def main():
     model_dir = "../results/model"
@@ -347,12 +359,10 @@ def main():
 
     if "medival" in config["datasets"]:
         log_msg("Using medival dataset")
-        if not os.path.exists(f"{datasets_dir}/medival.zip"):
+        dataset_zip_path = f"{datasets_dir}/medival.zip"
+        if not os.path.exists(dataset_zip_path):
             log_msg("Downloading medival dataset")
             prepare_medival(config["datasets"]["medival"]["url_path"], datasets_dir, "medival")
-
-        with zipfile.ZipFile(f"{datasets_dir}/medival.zip", 'r') as zip_ref:
-            zip_ref.extractall(datasets_dir)
 
         patterns = {
             "*training*.conll": sentences_train,
@@ -361,13 +371,9 @@ def main():
         }
 
         for pattern, sentences_list in patterns.items():
-            # Vytvoření plného vzoru cesty s použitím glob
-            full_pattern = os.path.join(datasets_dir, pattern)
-            for file_path in glob.glob(full_pattern):
-                with open(file_path, 'r', encoding='utf-8') as file:
-                    file_content = file.read()
-                    sentences = parse(file_content)
-                    sentences_list.extend(sentences)
+            # Použití generátoru pro načítání a zpracování dat
+            for sentences in stream_files_from_zip(dataset_zip_path, pattern):
+                sentences_list.extend(sentences)
 
         remove_files_by_extension(output_dir, '.conll')
         print(f"medival: sentences_train: {len(sentences_train)},"
