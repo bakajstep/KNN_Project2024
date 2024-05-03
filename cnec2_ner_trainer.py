@@ -376,8 +376,6 @@ def main():
     test_pt_attention_masks = torch.stack(attention_masks, dim=0)
     test_pt_labels = torch.tensor(new_labels, dtype=torch.long)
 
-    batch_size = 32
-
     test_prediction_data = TensorDataset(test_pt_input_ids, test_pt_attention_masks, test_pt_labels)
     test_prediction_sampler = SequentialSampler(test_prediction_data)
     test_prediction_dataloader = DataLoader(test_prediction_data, sampler=test_prediction_sampler,
