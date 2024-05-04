@@ -182,10 +182,8 @@ def log_summary(exp_name: str, config: dict):
         f"{'Epsilon:':<24}{cf_t['optimizer']['eps']}")
 
 
-def dataset_from_sentences(sentences, tokenizer, maximum_token_length):
+def dataset_from_sentences(label_map, sentences, tokenizer, maximum_token_length):
     labels = get_labels(sentences)
-    unique_labels = get_unique_labels(sentences)
-    label_map = get_labels_map(unique_labels)
     attention_masks, input_ids = get_attention_mask(sentences,
                                                     tokenizer,
                                                     maximum_token_length + 1)
@@ -357,8 +355,8 @@ def main():
                                                     maximum_token_length + 1)
     pt_input_ids = torch.stack(input_ids, dim=0)
 
-    train_dataset = dataset_from_sentences(sentences_train, tokenizer, maximum_token_length)
-    val_dataset = dataset_from_sentences(sentences_validate, tokenizer, maximum_token_length)
+    train_dataset = dataset_from_sentences(label_map, sentences_train, tokenizer, maximum_token_length)
+    val_dataset = dataset_from_sentences(label_map, sentences_validate, tokenizer, maximum_token_length)
 
     log_msg(f'{len(train_dataset):>5,} training samples')
     log_msg(f'{len(val_dataset):>5,} validation samples')
@@ -370,7 +368,7 @@ def main():
     validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset),
                                        batch_size=batch_size)
 
-    test_dataset = dataset_from_sentences(sentences_test, tokenizer, maximum_token_length)
+    test_dataset = dataset_from_sentences(label_map, sentences_test, tokenizer, maximum_token_length)
     test_prediction_dataloader = DataLoader(test_dataset, sampler=SequentialSampler(test_dataset),
                                             batch_size=batch_size)
 
