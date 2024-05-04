@@ -11,7 +11,7 @@ import numpy as np
 import torch
 from accelerate import Accelerator
 from conllu import parse
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, classification_report
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, get_scheduler
 from yaml import safe_load
@@ -540,6 +540,10 @@ def main():
 
         log_msg(f"F1 score: {val_f1:.2%}")
 
+        classification_rep = classification_report(val_token_labels, val_token_predictions, zero_division=0)
+        log_msg("\nClassification Report per Label:")
+        log_msg(classification_rep)
+
         ################
         # Saving model #
         ################
@@ -628,6 +632,10 @@ def main():
     f1 = f1_score(real_token_labels, real_token_predictions, average='micro')
 
     log_msg(f"F1 score: {f1:.2%}")
+
+    classification_rep = classification_report(real_token_labels, real_token_predictions, zero_division=0)
+    log_msg("\nClassification Report per Label:")
+    log_msg(classification_rep)
 
 
 if __name__ == "__main__":
