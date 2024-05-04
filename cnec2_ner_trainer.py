@@ -339,9 +339,9 @@ def main():
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])
 
-    log_msg(conllu_to_string(sentences[0]))
+    log_msg(conllu_to_string(sentences_train[0]))
     token_length = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True))
-                    for i in sentences]
+                    for i in sentences_train]
 
     maximum_token_length = max(token_length)
 
@@ -350,13 +350,11 @@ def main():
     log_msg(f'Maximum length: {max(token_length):,} tokens')
     log_msg(f'Median length: {int(np.median(token_length)):,} tokens')
 
-    labels = get_labels(sentences)
-    unique_labels = get_unique_labels(sentences)
+    unique_labels = get_unique_labels(sentences_train)
     label_map = get_labels_map(unique_labels)
-    attention_masks, input_ids = get_attention_mask(sentences,
+    attention_masks, input_ids = get_attention_mask(sentences_train,
                                                     tokenizer,
                                                     maximum_token_length + 1)
-    new_labels = get_new_labels(input_ids, labels, label_map, tokenizer)
     pt_input_ids = torch.stack(input_ids, dim=0)
 
     train_dataset = dataset_from_sentences(sentences_train, tokenizer, maximum_token_length)
@@ -372,13 +370,8 @@ def main():
     validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset),
                                        batch_size=batch_size)
 
-    test_pt_input_ids = torch.stack(input_ids, dim=0)
-    test_pt_attention_masks = torch.stack(attention_masks, dim=0)
-    test_pt_labels = torch.tensor(new_labels, dtype=torch.long)
-
-    test_prediction_data = TensorDataset(test_pt_input_ids, test_pt_attention_masks, test_pt_labels)
-    test_prediction_sampler = SequentialSampler(test_prediction_data)
-    test_prediction_dataloader = DataLoader(test_prediction_data, sampler=test_prediction_sampler,
+    test_dataset = dataset_from_sentences(sentences_test, tokenizer, maximum_token_length)
+    test_prediction_dataloader = DataLoader(test_dataset, sampler=SequentialSampler(test_dataset),
                                             batch_size=batch_size)
 
     # Model.
