@@ -68,11 +68,10 @@ if [ ! -d "$DATAPATH" ]; then # test if dir exists
   mkdir "$DATAPATH"  
 fi
 
-# Prepare local directory with datasets
-mkdir program/datasets
-
 # Copy converted datasets if they are created
-cp -R "$DATAPATH" program/datasets
+# It is not needed to create a "datasets" directory locally because it is 
+# coppied from the storage including the folder.
+cp -R "$DATAPATH" program
 
 # Prepare environment
 printf "Prepare environment\n"
@@ -141,6 +140,9 @@ do
   mv ../results/* "$new_model_dir"
   cp "$config_file" "$new_model_dir"
 done
+
+# Move to the root folder before copy.
+cd ../..
 
 # Copy the datasets into the directory in the storage.
 cp program/datasets/*.zip "${DATAPATH}"
