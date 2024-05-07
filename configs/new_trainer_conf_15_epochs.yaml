@@ -1,0 +1,26 @@
+desc: "Baseline experiment. Learning rate scheduler is linear, training 5 epochs on CNEC2 dataset."
+
+model:
+  name: "BERT"
+  desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
+  path: "google-bert/bert-base-uncased"
+
+datasets:
+  cnec2:
+    name: "CNEC 2.0 CoNLL"
+    desc: "Czech Named Entity Corpus 2.0 CoNNL dataset. General-language Czech NER dataset."
+    path: "../datasets/cnec2.0"
+
+training:
+  num_train_epochs: 15
+  batch_size: 32
+
+  optimizer:
+    learning_rate: 5.e-5
+    weight_decay: 0.01
+    beta1: 0.9
+    beta2: 0.999
+    eps: 1e-8
+  lr_scheduler:
+    name: "linear"
+    num_warmup_steps: 0
