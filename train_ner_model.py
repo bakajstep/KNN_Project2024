@@ -22,7 +22,7 @@ import pandas as pd
 from accelerate import Accelerator
 from tqdm.auto import tqdm
 from yaml import safe_load
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 
 
 def parse_arguments():
@@ -49,11 +49,11 @@ def log_summary(exp_name: str, config: dict):
     cf_t = config["training"]
     log_msg("Parameters:\n{:<24}{}\n{:<24}{}\n{:<24}{}".format(
         "Num train epochs:", cf_t["num_train_epochs"], "Batch size:", cf_t["batch_size"],
-        "Val batch size:", cf_t["val_batch_size"]))
+        "Val batch size:", cf_t["batch_size"]))
     log_msg("{:<24}{}\n{:<24}{}\n{:<24}{}\n{:<24}{}".format(
         "Learning rate:", cf_t["optimizer"]["learning_rate"], "Weight decay:", cf_t["optimizer"]["weight_decay"],
         "Lr scheduler:",
-        cf_t["lr_scheduler"]["name"], "Warmup ratio:", cf_t["lr_scheduler"]["warmup_ratio"]))
+        cf_t["lr_scheduler"]["name"], "Warmup ratio:", cf_t["lr_scheduler"]["num_warmup_steps"]))
 
 
 def align_labels_with_tokens(labels, word_ids):
@@ -162,7 +162,7 @@ def main():
     )
 
     eval_dataloader = torch.utils.data.DataLoader(
-        tokenized_datasets["validation"], collate_fn=data_collator, batch_size=config["training"]["val_batch_size"]
+        tokenized_datasets["validation"], collate_fn=data_collator, batch_size=config["training"]["batch_size"]
     )
 
     id2label = {i: label for i, label in enumerate(label_names)}
@@ -174,9 +174,9 @@ def main():
         label2id=label2id,
     )
 
-    """
-    metric = evaluate.load("seqeval")
 
+    metric = evaluate.load("seqeval")
+    """
     def compute_metrics(eval_preds):
         logits, labels = eval_preds
         predictions = np.argmax(logits, axis=-1)
@@ -212,7 +212,7 @@ def main():
     lr_scheduler = transformers.get_scheduler(
         config["training"]["lr_scheduler"]["name"],
         optimizer=optimizer,
-        num_warmup_steps=int(config["training"]["lr_scheduler"]["warmup_ratio"] * num_training_steps),
+        num_warmup_steps=int(config["training"]["lr_scheduler"]["num_warmup_steps"] * num_training_steps),
         num_training_steps=num_training_steps,
     )
 
