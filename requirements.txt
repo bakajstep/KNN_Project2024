@@ -7,4 +7,6 @@ torch==2.0.0
 transformers==4.37.2
 accelerate~=0.18.0
 pagexml-tools==0.5.0
+evaluate~=0.4.2
+seqeval~=1.2.2
 PyYAML~=6.0.1

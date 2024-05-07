@@ -5,15 +5,17 @@ import logging
 import os
 import random
 import zipfile
+import evaluate
 from warnings import simplefilter
 
 import numpy as np
 import torch
 from accelerate import Accelerator
 from conllu import parse
-from sklearn.metrics import f1_score
-from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
-from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, get_scheduler
+from sklearn.metrics import f1_score, classification_report
+from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler, Dataset
+from transformers import AutoTokenizer, AutoModelForTokenClassification, AdamW, get_scheduler, \
+    DataCollatorForTokenClassification
 from yaml import safe_load
 
 from parsers.cnec2_extended.cnec2_extended import get_cnec2_extended
@@ -96,7 +98,7 @@ def get_attention_mask(conllu_sentences, tokenizer, max_length):
             sent_str,
             add_special_tokens=True,
             truncation=True,
-            max_length=512,
+            max_length=max_length,
             # max_length, # RuntimeError: The expanded size of the tensor (527) must match
             # the existing size (512) at non-singleton dimension 1.
             # Target sizes: [32, 527].  Tensor sizes: [1, 512]
@@ -182,22 +184,58 @@ def log_summary(exp_name: str, config: dict):
         f"{'Epsilon:':<24}{cf_t['optimizer']['eps']}")
 
 
-def dataset_from_sentences(sentences, tokenizer, maximum_token_length):
-    labels = get_labels(sentences)
-    unique_labels = get_unique_labels(sentences)
-    label_map = get_labels_map(unique_labels)
-    attention_masks, input_ids = get_attention_mask(sentences,
-                                                    tokenizer,
-                                                    maximum_token_length + 1)
-    new_labels = get_new_labels(input_ids, labels, label_map, tokenizer)
+class TokenDataset(Dataset):
+    def __init__(self, features):
+        self.features = features
 
-    pt_input_ids = torch.stack(input_ids, dim=0)
-    pt_attention_masks = torch.stack(attention_masks, dim=0)
-    pt_labels = torch.tensor(new_labels, dtype=torch.long)
+    def __len__(self):
+        return len(self.features)
 
-    dataset = TensorDataset(pt_input_ids, pt_attention_masks, pt_labels)
+    def __getitem__(self, idx):
+        return self.features[idx]
 
-    return dataset
+
+def dataset_from_sentences(label_map, sentences, tokenizer, max_length):
+    def tokenize_and_align_labels(sentence):
+        tokens = [token['form'] for token in sentence]
+        encoding = tokenizer(
+            tokens,
+            truncation=True,
+            padding='max_length',
+            max_length=max_length,
+            is_split_into_words=True,
+            return_tensors='pt'
+        )
+
+        input_ids = encoding['input_ids'].squeeze()
+        attention_mask = encoding['attention_mask'].squeeze()
+        word_ids = encoding.word_ids()
+        label_sequence = [-100] * len(word_ids)
+        for i, word_id in enumerate(word_ids):
+            if word_id is not None:
+                label_sequence[i] = label_map.get(sentence[word_id]['xpos'], -100)
+
+        return {
+            'input_ids': input_ids,
+            'attention_mask': attention_mask,
+            'labels': torch.tensor(label_sequence, dtype=torch.long)
+        }
+
+    features = [tokenize_and_align_labels(sentence) for sentence in sentences]
+    return TokenDataset(features)
+
+
+def postprocess(predictions, labels, label_names):
+    predictions = predictions.detach().cpu().clone().numpy()
+    labels = labels.detach().cpu().clone().numpy()
+
+    # Remove ignored index (special tokens) and convert to labels
+    true_labels = [[label_names[l] for l in label if l != -100] for label in labels]
+    true_predictions = [
+        [label_names[p] for (p, l) in zip(prediction, label) if l != -100]
+        for prediction, label in zip(predictions, labels)
+    ]
+    return true_labels, true_predictions
 
 
 def main():
@@ -339,53 +377,51 @@ def main():
     # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     tokenizer = AutoTokenizer.from_pretrained(config["model"]["path"])
 
-    log_msg(conllu_to_string(sentences[0]))
+    log_msg(conllu_to_string(sentences_train[0]))
     token_length = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True))
-                    for i in sentences]
+                    for i in sentences_train]
 
-    maximum_token_length = max(token_length)
+    maximum_token_length = int(max(token_length) * 0.5) if int(max(token_length) * 0.5) <= 512 else 512
 
     log_msg("Token lengths")
     log_msg(f'Minimum  length: {min(token_length):,} tokens')
     log_msg(f'Maximum length: {max(token_length):,} tokens')
     log_msg(f'Median length: {int(np.median(token_length)):,} tokens')
 
-    labels = get_labels(sentences)
-    unique_labels = get_unique_labels(sentences)
+    unique_labels = get_unique_labels(sentences_train)
     label_map = get_labels_map(unique_labels)
-    attention_masks, input_ids = get_attention_mask(sentences,
+    label_names = [label for label, _ in label_map.items()]
+    attention_masks, input_ids = get_attention_mask(sentences_train,
                                                     tokenizer,
-                                                    maximum_token_length + 1)
-    new_labels = get_new_labels(input_ids, labels, label_map, tokenizer)
+                                                    maximum_token_length)
     pt_input_ids = torch.stack(input_ids, dim=0)
 
-    train_dataset = dataset_from_sentences(sentences_train, tokenizer, maximum_token_length)
-    val_dataset = dataset_from_sentences(sentences_validate, tokenizer, maximum_token_length)
+    train_dataset = dataset_from_sentences(label_map, sentences_train, tokenizer, maximum_token_length)
+    val_dataset = dataset_from_sentences(label_map, sentences_validate, tokenizer, maximum_token_length)
 
     log_msg(f'{len(train_dataset):>5,} training samples')
     log_msg(f'{len(val_dataset):>5,} validation samples')
 
     batch_size = int(config["training"]["batch_size"])
 
-    train_dataloader = DataLoader(train_dataset, sampler=RandomSampler(train_dataset),
+    data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
+
+    train_dataloader = DataLoader(train_dataset, collate_fn=data_collator, shuffle=True,
                                   batch_size=batch_size)
-    validation_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset),
+    validation_dataloader = DataLoader(val_dataset, collate_fn=data_collator, sampler=SequentialSampler(val_dataset),
                                        batch_size=batch_size)
 
-    test_pt_input_ids = torch.stack(input_ids, dim=0)
-    test_pt_attention_masks = torch.stack(attention_masks, dim=0)
-    test_pt_labels = torch.tensor(new_labels, dtype=torch.long)
-
-    batch_size = 32
-
-    test_prediction_data = TensorDataset(test_pt_input_ids, test_pt_attention_masks, test_pt_labels)
-    test_prediction_sampler = SequentialSampler(test_prediction_data)
-    test_prediction_dataloader = DataLoader(test_prediction_data, sampler=test_prediction_sampler,
+    test_dataset = dataset_from_sentences(label_map, sentences_test, tokenizer, maximum_token_length)
+    test_prediction_dataloader = DataLoader(test_dataset, collate_fn=data_collator, sampler=SequentialSampler(test_dataset),
                                             batch_size=batch_size)
+
+    id2label = {i: label for i, label in enumerate(label_names)}
+    label2id = {v: k for k, v in id2label.items()}
 
     # Model.
     model = AutoModelForTokenClassification.from_pretrained(config["model"]["path"],
-                                                            num_labels=len(label_map) + 1,
+                                                            id2label=id2label,
+                                                            label2id=label2id,
                                                             output_attentions=False,
                                                             output_hidden_states=False)
     model.cuda()
@@ -394,9 +430,7 @@ def main():
     config_optimizer = config["training"]["optimizer"]
     optimizer = AdamW(model.parameters(),
                       lr=float(config_optimizer["learning_rate"]),
-                      betas=(float(config_optimizer["beta1"]), float(config_optimizer["beta2"])),
                       eps=float(config_optimizer["eps"]),
-                      weight_decay=float(config_optimizer["weight_decay"]),
                       )
 
     # Number of training epochs
@@ -451,25 +485,17 @@ def main():
                 # Report progress.
                 log_msg(f'  Batch {step:>5,}  of  {len(train_dataloader):>5,}.')
 
-            b_input_ids = batch[0].to(device)
-            b_input_mask = batch[1].to(device)
-            b_labels = batch[2].to(device)
+            outputs = model(**batch)
 
-            model.zero_grad()
-
-            outputs = model(b_input_ids, token_type_ids=None, attention_mask=b_input_mask,
-                            labels=b_labels)
-
-            loss = outputs[0]
+            loss = outputs.loss
 
             total_loss += loss.item()
 
             # loss.backward()
             accelerator.backward(loss)
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-
             optimizer.step()
+            optimizer.zero_grad()
 
             scheduler.step()
 
@@ -478,76 +504,44 @@ def main():
 
         log_msg(f"  Average training loss: {avg_train_loss:.2f}")
 
-        val_predictions, val_true_labels = [], []
-
         # TODO jestli pouzit accelerator i v evaluations
         ##############
         # Evaluation #
         ##############
+        metric = evaluate.load("seqeval")
+
+        # Evaluace
+        model.eval()
+
         for batch in validation_dataloader:
-            # Add batch to GPU
-            batch = tuple(t.to(device) for t in batch)
-
-            # Unpack the inputs from our dataloader
-            b_input_ids, b_input_mask, b_labels = batch
-
-            # Telling the model not to compute or store gradients, saving memory and
-
             with torch.no_grad():
-                # Forward pass, calculate logit predictions
-                outputs = model(b_input_ids, token_type_ids=None,
-                                attention_mask=b_input_mask)
+                outputs = model(**batch)
 
-            logits = outputs[0]
+            predictions = outputs.logits.argmax(dim=-1)
+            labels = batch["labels"]
 
-            # Move logits and labels to CPU
-            logits = logits.detach().cpu().numpy()
-            label_ids = b_labels.to('cpu').numpy()
+            predictions = accelerator.pad_across_processes(predictions, dim=1, pad_index=-100)
+            labels = accelerator.pad_across_processes(labels, dim=1, pad_index=-100)
 
-            # Store predictions and true labels
-            val_predictions.append(logits)
-            val_true_labels.append(label_ids)
+            predictions_gathered = accelerator.gather(predictions)
+            labels_gathered = accelerator.gather(labels)
 
-        # First, combine the results across the batches.
-        all_val_predictions = np.concatenate(val_predictions, axis=0)
-        all_val_true_labels = np.concatenate(val_true_labels, axis=0)
+            true_predictions, true_labels = postprocess(predictions_gathered, labels_gathered, label_names)
 
-        log_msg("After flattening the batches, the predictions have shape:")
-        log_msg(f"    {all_val_predictions.shape}")
+            metric.add_batch(predictions=true_predictions, references=true_labels)
 
-        # Next, let's remove the third dimension (axis 2), which has the scores
-        # for all 18 labels.
-
-        # For each token, pick the label with the highest score.
-        val_predicted_label_ids = np.argmax(all_val_predictions, axis=2)
-
-        log_msg("\nAfter choosing the highest scoring label for each token:")
-        log_msg(f"    {val_predicted_label_ids.shape}")
-
-        # Eliminate axis 0, which corresponds to the sentences.
-        val_predicted_label_ids = np.concatenate(val_predicted_label_ids, axis=0)
-        all_val_true_labels = np.concatenate(all_val_true_labels, axis=0)
-
-        log_msg("\nAfter flattening the sentences, we have predictions:")
-        log_msg(f"    {val_predicted_label_ids.shape}")
-        log_msg("and ground truth:")
-        log_msg(f"    {all_val_true_labels.shape}")
-
-        val_token_predictions = []
-        val_token_labels = []
-
-        # For each of the input tokens in the dataset...
-        for i, label in enumerate(all_val_true_labels):
-
-            # If it's not a token with a null label...
-            if label != -100:
-                # Add the prediction and the ground truth to their lists.
-                val_token_predictions.append(val_predicted_label_ids[i])
-                val_token_labels.append(label)
-
-        val_f1 = f1_score(val_token_labels, val_token_predictions, average='micro')
-
-        log_msg(f"F1 score: {val_f1:.2%}")
+        # Výsledky vyhodnocení
+        results = metric.compute()
+        print(results)
+        log_msg(
+            f"Metrics/train: "
+            + ", ".join(
+                [
+                    f"{key}: {results[f'overall_{key}']:.6f}"
+                    for key in ["f1", "accuracy", "precision", "recall"]
+                ]
+            )
+        )
 
         ################
         # Saving model #
@@ -562,81 +556,40 @@ def main():
     # Testing
     log_msg(f'Predicting labels for {len(pt_input_ids):,} test sentences...')
 
-    # Put model in evaluation mode
+    metric = evaluate.load("seqeval")
+
+    # Evaluace
     model.eval()
 
-    # Tracking variables
-    predictions, true_labels = [], []
-
-    # TODO jestli pouzit accelerator i v testovani
-    # https://github.com/roman-janik/diploma_thesis_program/blob/main/train_ner_model.py#L259
-    # Predict
     for batch in test_prediction_dataloader:
-        # Add batch to GPU
-        batch = tuple(t.to(device) for t in batch)
-
-        # Unpack the inputs from our dataloader
-        b_input_ids, b_input_mask, b_labels = batch
-
-        # Telling the model not to compute or store gradients, saving memory and
-
         with torch.no_grad():
-            # Forward pass, calculate logit predictions
-            outputs = model(b_input_ids, token_type_ids=None,
-                            attention_mask=b_input_mask)
+            outputs = model(**batch)
 
-        logits = outputs[0]
+        predictions = outputs.logits.argmax(dim=-1)
+        labels = batch["labels"]
 
-        # Move logits and labels to CPU
-        logits = logits.detach().cpu().numpy()
-        label_ids = b_labels.to('cpu').numpy()
+        predictions = accelerator.pad_across_processes(predictions, dim=1, pad_index=-100)
+        labels = accelerator.pad_across_processes(labels, dim=1, pad_index=-100)
 
-        # Store predictions and true labels
-        predictions.append(logits)
-        true_labels.append(label_ids)
+        predictions_gathered = accelerator.gather(predictions)
+        labels_gathered = accelerator.gather(labels)
 
-    log_msg('    DONE.')
+        true_predictions, true_labels = postprocess(predictions_gathered, labels_gathered, label_names)
 
-    # First, combine the results across the batches.
-    all_predictions = np.concatenate(predictions, axis=0)
-    all_true_labels = np.concatenate(true_labels, axis=0)
+        metric.add_batch(predictions=true_predictions, references=true_labels)
 
-    log_msg("After flattening the batches, the predictions have shape:")
-    log_msg(f"    {all_predictions.shape}")
-
-    # Next, let's remove the third dimension (axis 2), which has the scores
-    # for all 18 labels.
-
-    # For each token, pick the label with the highest score.
-    predicted_label_ids = np.argmax(all_predictions, axis=2)
-
-    log_msg("\nAfter choosing the highest scoring label for each token:")
-    log_msg(f"    {predicted_label_ids.shape}")
-
-    # Eliminate axis 0, which corresponds to the sentences.
-    predicted_label_ids = np.concatenate(predicted_label_ids, axis=0)
-    all_true_labels = np.concatenate(all_true_labels, axis=0)
-
-    log_msg("\nAfter flattening the sentences, we have predictions:")
-    log_msg(f"    {predicted_label_ids.shape}")
-    log_msg("and ground truth:")
-    log_msg(f"    {all_true_labels.shape}")
-
-    real_token_predictions = []
-    real_token_labels = []
-
-    # For each of the input tokens in the dataset...
-    for i, label in enumerate(all_true_labels):
-
-        # If it's not a token with a null label...
-        if label != -100:
-            # Add the prediction and the ground truth to their lists.
-            real_token_predictions.append(predicted_label_ids[i])
-            real_token_labels.append(label)
-
-    f1 = f1_score(real_token_labels, real_token_predictions, average='micro')
-
-    log_msg(f"F1 score: {f1:.2%}")
+    # Výsledky vyhodnocení
+    results = metric.compute()
+    print(results)
+    log_msg(
+        f"Metrics/train: "
+        + ", ".join(
+            [
+                f"{key}: {results[f'overall_{key}']:.6f}"
+                for key in ["f1", "accuracy", "precision", "recall"]
+            ]
+        )
+    )
 
 
 if __name__ == "__main__":

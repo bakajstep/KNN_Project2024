@@ -14,7 +14,6 @@ def get_dataset(url_path, output_dir, dataset_name):
     root_dir = 'cnec2.0_extended/'
     files_to_extract = ['dev.conll', 'train.conll', 'test.conll']
 
-    # Mapování pouze specifické části anotace
     annotation_mapping = {
         "P": "PER",
         "G": "LOC",
@@ -49,7 +48,6 @@ def get_dataset(url_path, output_dir, dataset_name):
                     processed_lines.append("")
                 line_number += 1
 
-            # Zápis zpracovaného obsahu do souboru
             output_file_path = os.path.join(output_dir, file_name)
             with open(output_file_path, "w", encoding="utf-8") as output_file:
                 output_file.write("\n".join(processed_lines))

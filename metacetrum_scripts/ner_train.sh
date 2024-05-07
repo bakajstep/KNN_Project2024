@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -N batch_job_knn
 #PBS -q gpu
-#PBS -l select=1:ncpus=2:ngpus=1:gpu_cap=cuda80:gpu_mem=20gb:mem=20gb:scratch_ssd=20gb:cluster=galdor
+#PBS -l select=1:ncpus=1:ngpus=1:gpu_mem=20gb:mem=20gb:scratch_ssd=20gb
 #PBS -l walltime=1:00:00
 #PBS -j oe
 #PBS -m ae
@@ -17,7 +17,7 @@
 
 trap 'clean_scratch' TERM EXIT
 
-HOMEPATH=/storage/praha1/home/$PBS_O_LOGNAME
+HOMEPATH=/storage/brno2/home/$PBS_O_LOGNAME
 DATAPATH=$HOMEPATH/datasets/            # folder with datasets
 RESPATH=$HOMEPATH/program/results/      # store results in this folder
 HOSTNAME=$(hostname -f)                 # hostname of local machine

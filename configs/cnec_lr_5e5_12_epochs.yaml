@@ -12,7 +12,7 @@ datasets:
     url_path: "https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-3493/cnec2.0_extended.zip"
 
 training:
-  num_train_epochs: 12
+  num_train_epochs: 50
   batch_size: 32
 
   optimizer:
