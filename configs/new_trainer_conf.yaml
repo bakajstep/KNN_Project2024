@@ -9,14 +9,14 @@ datasets:
   cnec2:
     name: "CNEC 2.0 CoNLL"
     desc: "Czech Named Entity Corpus 2.0 CoNNL dataset. General-language Czech NER dataset."
-    url_path: "../datasets/cnec2.0"
+    path: "../datasets/cnec2.0"
 
 training:
   num_train_epochs: 5
   batch_size: 32
 
   optimizer:
-    learning_rate: 5e-5
+    learning_rate: 5.e-5
     weight_decay: 0.01
     beta1: 0.9
     beta2: 0.999
