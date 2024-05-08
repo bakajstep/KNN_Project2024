@@ -80,7 +80,9 @@ def align_labels_with_tokens(labels, word_ids):
 
 # TODO nejspise upravit prepare datasets na nase, co potrebujem
 def prepare_datasets(config: dict):
-    raw_datasets = {key: datasets.load_from_disk(value["path"]) for (key, value) in config["datasets"].items()}
+    raw_datasets = {}
+    for key, value in config["datasets"].items():
+        raw_datasets[key] = datasets.load_from_disk(value["path"])
     label_names = ['O', 'B-p', 'I-p', 'B-i', 'I-i', 'B-g', 'I-g', 'B-t', 'I-t', 'B-o', 'I-o']
 
     # concatenate datasets
@@ -313,6 +315,7 @@ def main():
                                              tokenizer=tokenizer, metric="seqeval")
         test_results[dataset_name] = test_result
         test_result_df = pd.DataFrame(test_result).loc["number"]
+        print(test_result_df)
         log_msg("{}:\n{}\n".format(config["datasets"][dataset_name]["name"],
                                    test_result_df[
                                        ["overall_f1", "overall_accuracy", "overall_precision", "overall_recall"]]))
