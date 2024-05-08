@@ -22,6 +22,7 @@ datasets_path = "converted_datasets"
 # TODO datasets path
 # cnec_dir = "cnec2.0_extended"
 cnec_dir = "cnec2.0"
+medival_dir = "medival"
 slavic_dir = "slavic"
 chnec_dir = "chnec1.0"
 # sumeczech_dir = "sumeczech-1.0-ner"
@@ -73,6 +74,26 @@ def remap_tags(example, tag_map):
 
 
 slavic_dataset = datasets.load_dataset("slavic_bsnlp.py")
+# load Medival dataset with loading script
+medival_dataset = datasets.load_dataset("medival_conll.py")
+
+# transform Medival dataset into CHNEC 1.0 format -> change in NER tags
+medival_dataset = medival_dataset.cast_column("ner_tags", datasets.Sequence(
+    datasets.ClassLabel(
+        names=[
+            "O",
+            "B-p",
+            "I-p",
+            "B-g",
+            "I-g"
+        ]
+    )
+)
+                                        )
+medival_dataset = medival_dataset.map(lower_ner_tag_types, batched=True)
+
+# save Medival dataset in Hugging Face Datasets format (not tokenized)
+medival_dataset.save_to_disk(os.path.join(datasets_path, medival_dir))
 
 slavic_dataset = slavic_dataset.map(lambda example: remap_tags(example, slavic_tag_map))
 slavic_dataset = slavic_dataset.cast_column("ner_tags", datasets.Sequence(
