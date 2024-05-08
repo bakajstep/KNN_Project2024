@@ -16,19 +16,20 @@ import datasets
 import transformers
 import torch
 import evaluate
-import numpy as np
 import pandas as pd
 
 from accelerate import Accelerator
 from tqdm.auto import tqdm
 from yaml import safe_load
-#from torch.utils.tensorboard import SummaryWriter
+
+
+# from torch.utils.tensorboard import SummaryWriter
 
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', required=True, help='Training configuration file.')
-    #parser.add_argument('--results_csv', required=True, help='Results CSV file.')
+    # parser.add_argument('--results_csv', required=True, help='Results CSV file.')
     args = parser.parse_args()
     return args
 
@@ -40,7 +41,8 @@ def log_msg(msg: str):
 
 def log_summary(exp_name: str, config: dict):
     log_msg("{:<24}{}\n{:<24}{}".format(
-        "Name:", exp_name.removeprefix("exp_configs_ner/").removesuffix(".yaml"), "Description:", config["desc"]))
+        "Name:", exp_name.removeprefix("exp_configs_ner/").removesuffix(".yaml"), "Description:",
+        config["desc"]))
     ct = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_msg("{:<24}{}\n{:<24}{}\n{:<24}{}\n".format(
         "Start time:", ct, "Model:", config["model"]["name"],
@@ -51,7 +53,8 @@ def log_summary(exp_name: str, config: dict):
         "Num train epochs:", cf_t["num_train_epochs"], "Batch size:", cf_t["batch_size"],
         "Val batch size:", cf_t["batch_size"]))
     log_msg("{:<24}{}\n{:<24}{}\n{:<24}{}\n{:<24}{}".format(
-        "Learning rate:", cf_t["optimizer"]["learning_rate"], "Weight decay:", cf_t["optimizer"]["weight_decay"],
+        "Learning rate:", cf_t["optimizer"]["learning_rate"], "Weight decay:",
+        cf_t["optimizer"]["weight_decay"],
         "Lr scheduler:",
         cf_t["lr_scheduler"]["name"], "Warmup ratio:", cf_t["lr_scheduler"]["num_warmup_steps"]))
 
@@ -94,7 +97,8 @@ def prepare_datasets(config: dict):
     )
 
     # initialize tokenizer
-    tokenizer = transformers.AutoTokenizer.from_pretrained(config["model"]["path"], add_prefix_space=True)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(config["model"]["path"],
+                                                           add_prefix_space=True)
 
     def tokenize_and_align_labels(examples):
         tokenized_inputs = tokenizer(
@@ -121,7 +125,8 @@ def prepare_datasets(config: dict):
         remove_columns=concat_dataset_train.column_names,
     )
 
-    raw_datasets_test = {dataset_name: raw_dataset["test"] for (dataset_name, raw_dataset) in raw_datasets.items()}
+    raw_datasets_test = {dataset_name: raw_dataset["test"] for (dataset_name, raw_dataset) in
+                         raw_datasets.items()}
 
     return tokenizer, label_names, raw_datasets_test, {
         "train": t_concat_dataset_train,
@@ -144,14 +149,15 @@ def main():
         config = safe_load(config_file)
 
     # Start logging, print experiment configuration
-    logging.basicConfig(filename=os.path.join(output_dir, "experiment_results.txt"), level=logging.INFO,
+    logging.basicConfig(filename=os.path.join(output_dir, "experiment_results.txt"),
+                        level=logging.INFO,
                         encoding='utf-8', format='%(message)s')
     log_msg("Experiment summary:\n")
     log_summary(args.config, config)
     log_msg("-" * 80 + "\n")
 
     # Init tensorboard writer
-    #writer = SummaryWriter(log_dir)
+    # writer = SummaryWriter(log_dir)
 
     tokenizer, label_names, test_datasets, tokenized_datasets = prepare_datasets(config)
     data_collator = transformers.DataCollatorForTokenClassification(tokenizer=tokenizer)
@@ -164,7 +170,8 @@ def main():
     )
 
     eval_dataloader = torch.utils.data.DataLoader(
-        tokenized_datasets["validation"], collate_fn=data_collator, batch_size=config["training"]["batch_size"]
+        tokenized_datasets["validation"], collate_fn=data_collator,
+        batch_size=config["training"]["batch_size"]
     )
 
     id2label = {i: label for i, label in enumerate(label_names)}
@@ -175,7 +182,6 @@ def main():
         id2label=id2label,
         label2id=label2id,
     )
-
 
     metric = evaluate.load("seqeval")
     """
@@ -214,7 +220,8 @@ def main():
     lr_scheduler = transformers.get_scheduler(
         config["training"]["lr_scheduler"]["name"],
         optimizer=optimizer,
-        num_warmup_steps=int(config["training"]["lr_scheduler"]["num_warmup_steps"] * num_training_steps),
+        num_warmup_steps=int(
+            config["training"]["lr_scheduler"]["num_warmup_steps"] * num_training_steps),
         num_training_steps=num_training_steps,
     )
 
@@ -240,11 +247,11 @@ def main():
         for i, batch in enumerate(train_dataloader):
             outputs = model(**batch)
             loss = outputs.loss
-            #if i % 100 == 99:
+            # if i % 100 == 99:
             #    #writer.add_scalar("Loss/train", loss, epoch)
             accelerator.backward(loss)
 
-            #writer.add_scalar("Learning_rate/train", lr_scheduler.get_last_lr()[0], step)
+            # writer.add_scalar("Learning_rate/train", lr_scheduler.get_last_lr()[0], step)
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
@@ -290,7 +297,7 @@ def main():
         if accelerator.is_main_process:
             tokenizer.save_pretrained(model_dir)
 
-    #writer.flush()
+    # writer.flush()
     time.sleep(3)
 
     # Log last validation results
@@ -315,10 +322,10 @@ def main():
                                              tokenizer=tokenizer, metric="seqeval")
         test_results[dataset_name] = test_result
         test_result_df = pd.DataFrame(test_result).loc["number"]
-        print(test_result_df)
         log_msg("{}:\n{}\n".format(config["datasets"][dataset_name]["name"],
                                    test_result_df[
-                                       ["overall_f1", "overall_accuracy", "overall_precision", "overall_recall"]]))
+                                       ["overall_f1", "overall_accuracy", "overall_precision",
+                                        "overall_recall"]]))
 
     # Log to CSV results file
     """ exp_name = os.path.splitext(os.path.basename(args.config))[0]
