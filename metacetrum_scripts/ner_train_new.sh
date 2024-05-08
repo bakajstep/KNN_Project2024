@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -N batch_job_knn
 #PBS -q gpu
-#PBS -l select=1:ncpus=2:ngpus=1:gpu_cap=cuda80:gpu_mem=20gb:mem=20gb:scratch_ssd=20gb:cluster=galdor
+#PBS -l select=1:ncpus=1:ngpus=1:gpu_mem=20gb:mem=20gb:scratch_ssd=20gb
 #PBS -l walltime=1:00:00
 #PBS -j oe
 #PBS -m ae
@@ -39,7 +39,8 @@ clean_scratch
 
 # Clone the repository
 printf "Cloning the repository ...\n"
-cp "$HOMEPATH"/.ssh/id_ed25519 "$HOMEPATH"/.ssh/known_hosts "$HOME"/.ssh
+mkdir "$HOME"/.ssh
+cp "$HOMEPATH"/.ssh/* "$HOME"/.ssh
 printf "Print content of .ssh dir\n"
 ls -la "$HOME"/.ssh
 mkdir program
