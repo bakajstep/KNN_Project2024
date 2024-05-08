@@ -39,7 +39,8 @@ clean_scratch
 
 # Clone the repository
 printf "Cloning the repository ...\n"
-cp "$HOMEPATH"/.ssh/id_ed25519 "$HOMEPATH"/.ssh/known_hosts "$HOME"/.ssh
+mkdir "$HOME"/.ssh
+cp "$HOMEPATH"/.ssh/* "$HOME"/.ssh
 printf "Print content of .ssh dir\n"
 ls -la "$HOME"/.ssh
 mkdir program
