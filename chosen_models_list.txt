@@ -1,0 +1,19 @@
+Transformers:
+
+1.
+Name: Bert
+Source: google-bert/bert-base-uncased
+Taken from: https://github.com/Kanishkparganiha/Named-Entity-Recognition-using-BERT-with-PyTorch
+
+2.
+Name: robeczech-base
+Source: https://huggingface.co/ufal/robeczech-base
+Taken from: https://github.com/roman-janik/diploma_thesis_program/tree/main
+
+3.
+Name: Czert-B-base-cased
+Note: unfine-tuned CZERT-B-ner-CNEC-cased
+Source: https://huggingface.co/UWB-AIR/Czert-B-base-cased
+Taken from: https://github.com/roman-janik/diploma_thesis_program/tree/main
+
+Fine-tuned:

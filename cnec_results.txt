@@ -1,0 +1,74 @@
+Config: bert
+10 epoch
+CNEC 2.0 CoNLL:
+overall_f1           0.700833
+overall_accuracy     0.932479
+overall_precision    0.684081
+overall_recall       0.718427
+
+
+Config: robeczech
+10 epoch
+CNEC 2.0 CoNLL:
+overall_f1           0.886140
+overall_accuracy     0.973819
+overall_precision    0.864958
+overall_recall       0.908385
+
+
+Config: czert
+10 epoch
+CNEC 2.0 CoNLL:
+overall_f1           0.845309
+overall_accuracy     0.968882
+overall_precision    0.815992
+overall_recall       0.876812
+
+
+Config: fernet_c5
+10 epoch
+CNEC 2.0 CoNLL:
+overall_f1           0.880567
+overall_accuracy     0.971775
+overall_precision    0.861386
+overall_recall       0.900621
+
+
+Config: slavic
+10 epoch
+CNEC 2.0 CoNLL:
+overall_f1           0.864728
+overall_accuracy     0.969581
+overall_precision    0.845279
+overall_recall       0.885093
+
+Config: roberta_base
+10 epoch
+overall_f1           0.787346
+overall_accuracy     0.953872
+overall_precision    0.764505
+overall_recall       0.811594
+
+Config: seznam
+10 epoch
+CNEC 2.0 CoNLL:
+overall_f1           0.750370
+overall_accuracy     0.948137
+overall_precision    0.716777
+overall_recall       0.787267
+
+Config: xlm_roberta_base
+10 epoch
+CNEC 2.0 CoNLL:
+overall_f1           0.857071
+overall_accuracy     0.969431
+overall_precision    0.836785
+overall_recall       0.878364
+
+Config: xlm_roberta_large
+50 epoch
+CNEC 2.0 CoNLL:
+overall_f1           0.798010
+overall_accuracy     0.963297
+overall_precision    0.768199
+overall_recall       0.830228

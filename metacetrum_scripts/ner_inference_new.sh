@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -N batch_job_knn
 #PBS -q gpu
-#PBS -l select=1:ncpus=2:ngpus=1:gpu_cap=cuda80:gpu_mem=20gb:mem=20gb:scratch_ssd=20gb:cluster=galdor
+#PBS -l select=1:ncpus=1:ngpus=1:gpu_mem=20gb:mem=20gb:scratch_ssd=20gb
 #PBS -l walltime=1:00:00
 #PBS -j oe
 #PBS -m ae
@@ -19,6 +19,7 @@ trap 'clean_scratch' TERM EXIT
 
 HOMEPATH=/storage/praha1/home/$PBS_O_LOGNAME
 DATAPATH=$HOMEPATH/program/datasets/            # folder with datasets
+MODELPATH=$HOMEPATH/program/models/
 RESPATH=$HOMEPATH/program/results/      # store results in this folder
 HOSTNAME=$(hostname -f)                 # hostname of local machine
 
@@ -65,13 +66,16 @@ mkdir program/results
 # Prepare directory with datasets
 printf "Prepare directory with datasets\n"
 if [ ! -d "$DATAPATH" ]; then # test if dir exists
-  mkdir "$DATAPATH"
+  mkdir "$DATAPATH"  
 fi
 
 # Copy converted datasets if they are created
 # It is not needed to create a "datasets" directory locally because it is 
 # coppied from the storage including the folder.
 cp -R "$DATAPATH" program
+
+# Copy trained models.
+cp -R "$MODELPATH" program
 
 # Prepare environment
 printf "Prepare environment\n"
@@ -109,11 +113,6 @@ all_exp_results_csv="$RESPATH"all_experiment_results_"$curr_date".csv
 # Run training and save results for configs in list of configurations
 printf "\nPreparation took %s seconds, starting training...\n" $(($(date +%s) - start_time))
 
-# For now, just run the training script:
-# printf "Start training\n"
-# python3 cnec2_ner_trainer.py
-# printf "Training exit code: %s\n" "$?"
-
 config_idx=0
 for config_file in $config_list
 do
@@ -123,11 +122,12 @@ do
   printf "\nConfig: %s\n" "$config_name"
 
   # Start training
-  printf "Start training\n"
+  printf "Starting inference \n"
 
   # Run the training script.
-  python cnec2_ner_trainer.py --config "$config_file" # --results_csv "$all_exp_results_csv"
-  printf "Training exit code: %s\n" "$?"
+  #python cnec2_ner_trainer.py --config "$config_file" # --results_csv "$all_exp_results_csv"
+  python inference_new_model.py --config "$config_file" # --results_csv "$all_exp_results_csv"
+  printf "Inference exit code: %s\n" "$?"
 
   # Save results
   printf "\nSave results\n"

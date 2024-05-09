@@ -5,7 +5,7 @@ from parsers.slavic.slavic_bsnlp import prepare_slavic
 from parsers.wikiann_cs.wikiann_cs import prepare_wikiann
 
 
-def main(output_dir):
+def prepare_datasets_to_conll(output_dir):
     prepare_wikiann(output_dir, "wikiann")
     prepare_poner(output_dir, "poner")
     get_cnec2_extended(
@@ -21,8 +21,8 @@ def main(output_dir):
     prepare_medival(
         'https://lindat.mff.cuni.cz/repository/xmlui/bitstream/handle/11234/1-5024/'
         'named-entity-recognition-annotations-small.zip?sequence=2&isAllowed=y',
-        output_dir, "medival_dataset")
+        output_dir, "medival")
 
 
 if __name__ == '__main__':
-    main("./custom")
+    prepare_datasets_to_conll("./custom")

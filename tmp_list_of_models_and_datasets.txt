@@ -30,15 +30,15 @@ Note: unfine-tuned Seznam fine-tuned
 Source: https://huggingface.co/Seznam/small-e-czech
 Taken from: huggingface
 
-6.
-Name: NameTag 2 Models
-Source: https://lindat.mff.cuni.cz/repository/xmlui/handle/11234/1-3773
+#6.
+#Name: NameTag 2 Models
+#Source: https://lindat.mff.cuni.cz/repository/xmlui/handle/11234/1-3773
 
 7.
-Name: flair
-Source: https://huggingface.co/flair/ner-english 
-Source2: https://huggingface.co/flair/ner-multi
-Taken from: https://aclanthology.org/P19-1527.pdf
+#Name: flair
+#Source: https://huggingface.co/flair/ner-english 
+#Source2: https://huggingface.co/flair/ner-multi
+#Taken from: https://aclanthology.org/P19-1527.pdf
 
 8.
 Name: Roberta
@@ -62,12 +62,12 @@ Source2: https://huggingface.co/fav-kky/FERNET-News
 Taken from: https://otik.uk.zcu.cz/bitstream/11025/47192/1/Lehe%C4%8Dka-%C5%A0vec2021_Chapter_ComparisonOfCzechTransformersO.pdf
 
 12.
-Name: Bart, mBart (multilanguage)
-Source: https://huggingface.co/facebook/bart-large
-Source2: https://huggingface.co/facebook/bart-base
-Source3: https://huggingface.co/dslim/bert-base-NER
-Source mBart: https://huggingface.co/docs/transformers/model_doc/mbart
-Taken from: https://dspace.cvut.cz/bitstream/handle/10467/101028/F3-BP-2022-Krotil-Marian-CTUWORK-final.pdf?sequence=-1&isAllowed=y
+#Name: Bart, mBart (multilanguage)
+#Source: https://huggingface.co/facebook/bart-large
+#Source2: https://huggingface.co/facebook/bart-base
+#Source3: https://huggingface.co/dslim/bert-base-NER
+#Source mBart: https://huggingface.co/docs/transformers/model_doc/mbart
+#Taken from: https://dspace.cvut.cz/bitstream/handle/10467/101028/F3-BP-2022-Krotil-Marian-CTUWORK-final.pdf?sequence=-1&isAllowed=y
 
 -------------------------------------------------------------------
 

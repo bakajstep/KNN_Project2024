@@ -1,0 +1,25 @@
+desc: "Baseline experiment. Learning rate scheduler is linear, training 5 epochs on CNEC2 dataset."
+
+model:
+  name: "xlm-roberta-large"
+  desc: "FacebookAI - xlm-roberta-large"
+  path: "FacebookAI/xlm-roberta-large"
+
+datasets:
+  cnec2:
+    name: "CNEC 2.0 CoNLL"
+    desc: "Czech Named Entity Corpus 2.0 CoNNL dataset. General-language Czech NER dataset."
+    path: "../datasets/cnec2.0"
+
+training:
+  num_train_epochs: 50
+  batch_size: 32
+
+  optimizer:
+    learning_rate: 5.e-5
+    weight_decay: 0.
+    beta1: 0.9
+    beta2: 0.999
+  lr_scheduler:
+    name: "linear"
+    num_warmup_steps: 0.06
