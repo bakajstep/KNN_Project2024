@@ -3,10 +3,10 @@ desc: "Script for running the inferece."
 model:
   name: "BERT"
   desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
-  path: "../models/xlm_roberta_base/model"
+  path: "../models/fernet10_nonslavic/model"
 
 datasets:
-  cnec2:
-    name: "CNEC 2.0 CoNLL"
-    desc: "Czech Named Entity Corpus 2.0 CoNNL dataset. General-language Czech NER dataset."
-    path: "../datasets/cnec2.0"
+  poner1.0:
+    name: "Poner 1.0"
+    desc: "Pero OCR NER 1.0 dataset"
+    path: "../datasets/poner1.0"
