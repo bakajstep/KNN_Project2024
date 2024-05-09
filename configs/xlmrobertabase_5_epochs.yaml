@@ -1,0 +1,33 @@
+desc: "xlm-roberta-base. Datasets: CNEC, CHNEC, Slavic. 5 epochs"
+
+model:
+  name: "xlm-roberta-base"
+  desc: "FacebookAI - xlm-roberta-base"
+  path: "FacebookAI/xlm-roberta-base"
+
+datasets:
+  cnec2:
+    name: "CNEC 2.0 CoNLL"
+    desc: "Czech Named Entity Corpus 2.0 CoNNL dataset. General-language Czech NER dataset."
+    path: "../datasets/cnec2.0"
+  chnec:
+    name: "CHNEC 1.0"
+    desc: "Czech Historical Named Entity Corpus 1.0 dataset. Historic-language Czech NER dataset."
+    path: "../datasets/chnec1.0"
+  slavic:
+    name: "Slavic"
+    desc: "Cross-lingual Named Entity Corpus for Slavic Languages"
+    path: "../datasets/slavic"
+
+training:
+  num_train_epochs: 5
+  batch_size: 16
+
+  optimizer:
+    learning_rate: 3.e-5
+    weight_decay: 0.01
+    beta1: 0.9
+    beta2: 0.999
+  lr_scheduler:
+    name: "linear"
+    num_warmup_steps: 0.06
