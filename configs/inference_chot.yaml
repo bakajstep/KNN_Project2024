@@ -1,0 +1,21 @@
+desc: "Script for running the inferece."
+
+models:
+  model1:
+    name: "BERT"
+    desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
+    path: "../models/robeczech5/model/"
+  model2:
+    name: "BERT"
+    desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
+    path: "../models/robeczech10/model/"
+  model3:
+    name: "BERT"
+    desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
+    path: "../models/robeczech15/model/"
+
+datasets:
+  poner1.0:
+    name: "Poner 1.0"
+    desc: "Pero OCR NER 1.0 dataset"
+    path: "../datasets/poner1.0"
