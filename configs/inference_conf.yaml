@@ -3,7 +3,7 @@ desc: "Script for running the inferece."
 model:
   name: "BERT"
   desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
-  path: "../models/xlm_roberta_base/model"
+  path: "../models/fernet10_nonslavic/model"
 
 datasets:
   cnec2:

@@ -1,12 +1,27 @@
 desc: "Script for running the inferece."
 
-model:
-  name: "BERT"
-  desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
-  path: "../models/xlm_roberta_base/model"
+models:
+  - name: "Fernet"
+    desc: "Fernet on 5 epochs without slavic corpus"
+    path: "../models/fernet5_nonslavic/model"
+  - name: "Fernet"
+    desc: "Fernet on 5 epochs with slavic corpus"
+    path: "../models/fernet5/model"
+  - name: "Fernet"
+    desc: "Fernet on 10 epochs without slavic corpus"
+    path: "../models/fernet10_nonslavic/model"
+  - name: "Fernet"
+    desc: "Fernet on 10 epochs with slavic corpus"
+    path: "../models/fernet10/model"
+  - name: "Fernet"
+    desc: "Fernet on 15 epochs without slavic corpus"
+    path: "../models/fernet15_nonslavic/model"
+  - name: "Fernet"
+    desc: "Fernet on 15 epochs with slavic corpus"
+    path: "../models/fernet15/model"
 
 datasets:
-  cnec2:
-    name: "CNEC 2.0 CoNLL"
-    desc: "Czech Named Entity Corpus 2.0 CoNNL dataset. General-language Czech NER dataset."
-    path: "../datasets/cnec2.0"
+  poner1.0:
+    name: "Poner 1.0"
+    desc: "Pero OCR NER 1.0 dataset"
+    path: "../datasets/poner1.0"

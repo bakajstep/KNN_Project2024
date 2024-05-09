@@ -83,48 +83,21 @@ def prepare_datasets(config: dict):
     raw_datasets = {key: datasets.load_from_disk(value["path"]) for (key, value) in config["datasets"].items()}
     label_names = ['O', 'B-p', 'I-p', 'B-i', 'I-i', 'B-g', 'I-g', 'B-t', 'I-t', 'B-o', 'I-o']
 
-    # concatenate datasets
-    concat_dataset_train = datasets.concatenate_datasets(
-        [raw_dataset["train"] for raw_dataset in raw_datasets.values()]
-    )
-    concat_dataset_validation = datasets.concatenate_datasets(
-        [raw_dataset["validation"] for raw_dataset in raw_datasets.values()]
-    )
+    if "test" not in config["datasets"]:
+        config["datasets"]["test"] = {
+            "name": "Combined Test Dataset",
+            "desc": "A combination of various splits from multiple datasets.",
+            "path": "path/to/combined_dataset"  # Tento údaj je ilustrativní
+        }
 
-    # initialize tokenizer
-    tokenizer = transformers.AutoTokenizer.from_pretrained(config["model"]["path"], add_prefix_space=True)
-
-    def tokenize_and_align_labels(examples):
-        tokenized_inputs = tokenizer(
-            examples["tokens"], truncation=True, padding=True, is_split_into_words=True
+    concat_datasets = datasets.DatasetDict({
+        "test": datasets.concatenate_datasets(
+            [dataset[split] for dataset in raw_datasets.values() for split in dataset if
+             split in ['train', 'test', 'validation']]
         )
-        all_labels = examples["ner_tags"]
-        new_labels = []
-        for i, labels in enumerate(all_labels):
-            word_ids = tokenized_inputs.word_ids(i)
-            new_labels.append(align_labels_with_tokens(labels, word_ids))
+    })
 
-        tokenized_inputs["labels"] = new_labels
-        return tokenized_inputs
-
-    t_concat_dataset_train = concat_dataset_train.map(
-        tokenize_and_align_labels,
-        batched=True,
-        remove_columns=concat_dataset_train.column_names,
-    )
-
-    t_concat_dataset_validation = concat_dataset_validation.map(
-        tokenize_and_align_labels,
-        batched=True,
-        remove_columns=concat_dataset_train.column_names,
-    )
-
-    raw_datasets_test = {dataset_name: raw_dataset["test"] for (dataset_name, raw_dataset) in raw_datasets.items()}
-
-    return tokenizer, label_names, raw_datasets_test, {
-        "train": t_concat_dataset_train,
-        "validation": t_concat_dataset_validation
-    }
+    return label_names, concat_datasets
 
 
 # noinspection PyArgumentList
@@ -151,41 +124,44 @@ def main():
     # Init tensorboard writer
     #writer = SummaryWriter(log_dir)
 
-    tokenizer, label_names, test_datasets, tokenized_datasets = prepare_datasets(config)
-    data_collator = transformers.DataCollatorForTokenClassification(tokenizer=tokenizer)
+    label_names, test_datasets = prepare_datasets(config)
 
     id2label = {i: label for i, label in enumerate(label_names)}
     label2id = {v: k for k, v in id2label.items()}
 
-    model = transformers.AutoModelForTokenClassification.from_pretrained(
-        config["model"]["path"],
-        id2label=id2label,
-        label2id=label2id,
-    )
+    for model_config in config['models']:
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model_config["path"], add_prefix_space=True)
+        log_msg(f"Processing model: {model_config['name']}")
 
-    accelerator = Accelerator()
-    model = accelerator.prepare(
-        model
-    )
+        model = transformers.AutoModelForTokenClassification.from_pretrained(
+            model_config["path"],
+            id2label=id2label,
+            label2id=label2id,
+        )
 
-    unwrapped_model = accelerator.unwrap_model(model)
+        accelerator = Accelerator()
+        model = accelerator.prepare(
+            model
+        )
 
-    # Test set evaluation
-    log_msg("Test set evaluation:")
-    task_evaluator = evaluate.evaluator("token-classification")
-    # test_model = transformers.AutoModelForTokenClassification.from_pretrained(
-    #     os.path.join(output_dir, "model")
-    # )
+        unwrapped_model = accelerator.unwrap_model(model)
 
-    test_results = {}
-    for (dataset_name, test_dataset) in test_datasets.items():
-        test_result = task_evaluator.compute(model_or_pipeline=unwrapped_model, data=test_dataset,
-                                             tokenizer=tokenizer, metric="seqeval")
-        test_results[dataset_name] = test_result
-        test_result_df = pd.DataFrame(test_result).loc["number"]
-        log_msg("{}:\n{}\n".format(config["datasets"][dataset_name]["name"],
-                                   test_result_df[
-                                       ["overall_f1", "overall_accuracy", "overall_precision", "overall_recall"]]))
+        # Test set evaluation
+        log_msg("Test set evaluation:")
+        task_evaluator = evaluate.evaluator("token-classification")
+        # test_model = transformers.AutoModelForTokenClassification.from_pretrained(
+        #     os.path.join(output_dir, "model")
+        # )
+
+        test_results = {}
+        for (dataset_name, test_dataset) in test_datasets.items():
+            test_result = task_evaluator.compute(model_or_pipeline=unwrapped_model, data=test_dataset,
+                                                 tokenizer=tokenizer, metric="seqeval")
+            test_results[dataset_name] = test_result
+            test_result_df = pd.DataFrame(test_result).loc["number"]
+            log_msg("{}:\n{}\n".format(config["datasets"][dataset_name]["name"],
+                                       test_result_df[
+                                           ["overall_f1", "overall_accuracy", "overall_precision", "overall_recall"]]))
 
     end_time = time.monotonic()
     log_msg("Elapsed script time: {}\n".format(datetime.timedelta(seconds=end_time - start_time)))
