@@ -126,7 +126,7 @@ do
 
   # Run the training script.
   #python cnec2_ner_trainer.py --config "$config_file" # --results_csv "$all_exp_results_csv"
-  python eval_ner_model.py --config "$config_file" # --results_csv "$all_exp_results_csv"
+  python chain_of_trust_eval.py --config "$config_file" # --results_csv "$all_exp_results_csv"
   printf "Evaluation exit code: %s\n" "$?"
 
   # Save results
