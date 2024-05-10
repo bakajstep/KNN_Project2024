@@ -83,7 +83,12 @@ def prepare_datasets(config: dict):
     raw_datasets = {key: datasets.load_from_disk(value["path"]) for (key, value) in config["datasets"].items()}
     label_names = ['O', 'B-p', 'I-p', 'B-i', 'I-i', 'B-g', 'I-g', 'B-t', 'I-t', 'B-o', 'I-o']
 
-    tokenizer = transformers.AutoTokenizer.from_pretrained(config["model"]["path"], add_prefix_space=True)
+    if "test" not in config["datasets"]:
+        config["datasets"]["test"] = {
+            "name": "Combined Test Dataset",
+            "desc": "A combination of various splits from multiple datasets.",
+            "path": "path/to/combined_dataset"  # Tento údaj je ilustrativní
+        }
 
     concat_datasets = datasets.DatasetDict({
         "test": datasets.concatenate_datasets(
@@ -92,7 +97,7 @@ def prepare_datasets(config: dict):
         )
     })
 
-    return tokenizer, label_names, concat_datasets
+    return label_names, concat_datasets
 
 
 # noinspection PyArgumentList
@@ -119,41 +124,44 @@ def main():
     # Init tensorboard writer
     #writer = SummaryWriter(log_dir)
 
-    tokenizer, label_names, test_datasets = prepare_datasets(config)
-    data_collator = transformers.DataCollatorForTokenClassification(tokenizer=tokenizer)
+    label_names, test_datasets = prepare_datasets(config)
 
     id2label = {i: label for i, label in enumerate(label_names)}
     label2id = {v: k for k, v in id2label.items()}
 
-    model = transformers.AutoModelForTokenClassification.from_pretrained(
-        config["model"]["path"],
-        id2label=id2label,
-        label2id=label2id,
-    )
+    for model_config in config['models']:
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model_config["path"], add_prefix_space=True)
+        log_msg(f"Processing model: {model_config['name']}")
 
-    accelerator = Accelerator()
-    model = accelerator.prepare(
-        model
-    )
+        model = transformers.AutoModelForTokenClassification.from_pretrained(
+            model_config["path"],
+            id2label=id2label,
+            label2id=label2id,
+        )
 
-    unwrapped_model = accelerator.unwrap_model(model)
+        accelerator = Accelerator()
+        model = accelerator.prepare(
+            model
+        )
 
-    # Test set evaluation
-    log_msg("Test set evaluation:")
-    task_evaluator = evaluate.evaluator("token-classification")
-    # test_model = transformers.AutoModelForTokenClassification.from_pretrained(
-    #     os.path.join(output_dir, "model")
-    # )
+        unwrapped_model = accelerator.unwrap_model(model)
 
-    test_results = {}
-    for (dataset_name, test_dataset) in test_datasets.items():
-        test_result = task_evaluator.compute(model_or_pipeline=unwrapped_model, data=test_dataset,
-                                             tokenizer=tokenizer, metric="seqeval")
-        test_results[dataset_name] = test_result
-        test_result_df = pd.DataFrame(test_result).loc["number"]
-        log_msg("{}:\n{}\n".format(config["datasets"][dataset_name]["name"],
-                                   test_result_df[
-                                       ["overall_f1", "overall_accuracy", "overall_precision", "overall_recall"]]))
+        # Test set evaluation
+        log_msg("Test set evaluation:")
+        task_evaluator = evaluate.evaluator("token-classification")
+        # test_model = transformers.AutoModelForTokenClassification.from_pretrained(
+        #     os.path.join(output_dir, "model")
+        # )
+
+        test_results = {}
+        for (dataset_name, test_dataset) in test_datasets.items():
+            test_result = task_evaluator.compute(model_or_pipeline=unwrapped_model, data=test_dataset,
+                                                 tokenizer=tokenizer, metric="seqeval")
+            test_results[dataset_name] = test_result
+            test_result_df = pd.DataFrame(test_result).loc["number"]
+            log_msg("{}:\n{}\n".format(config["datasets"][dataset_name]["name"],
+                                       test_result_df[
+                                           ["overall_f1", "overall_accuracy", "overall_precision", "overall_recall"]]))
 
     end_time = time.monotonic()
     log_msg("Elapsed script time: {}\n".format(datetime.timedelta(seconds=end_time - start_time)))

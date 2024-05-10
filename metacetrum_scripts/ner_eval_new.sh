@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -N batch_job_knn
 #PBS -q gpu
-#PBS -l select=1:ncpus=1:ngpus=1:gpu_mem=20gb:mem=20gb:scratch_ssd=20gb
+#PBS -l select=1:ncpus=1:ngpus=1:gpu_mem=20gb:mem=40gb:scratch_ssd=20gb
 #PBS -l walltime=1:00:00
 #PBS -j oe
 #PBS -m ae
