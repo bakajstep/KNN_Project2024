@@ -10,24 +10,15 @@ This repository contains a source code for the paper "Automated Data Labeling fo
 | *metacentrum_scripts/* | scripts for training and evaluation on the MetaCentrum nodes |
 | *parsers/* | datasets parsers |
 | *README.md* | this README |
-| *ner_trainer.py* | script for NER training with the specific configuration setting |
+| *train_ner_model.py* | script for NER training with the specific configuration setting |
 | *requirements.txt* | required libraries for running |
-| *text_classification.py* | script for running the Named Entity Recognition |
-| *tmp_list_of_models_and_datasets.txt* | temporary file containing a list of found models |
+| *eval_ner_model.py* | evaluation of a model on a test dataset |
+| *chain_of_trust_eval.py* | evaluation of a chain of trust system on a test dataset |
+| *inference_new_model.py* | script for running the Named Entity Recognition |
+| *count_tags.py* |  script for counting tags in the created dataset|
 
-## Trained models
-The fine-tuned models can be downloaded from the [public storage](https://drive.google.com/drive/folders/1-4beN42ym1WDLJqviYmY0mOoxOyjH3ey?usp=sharing).
-
-## Results
-The following table captures the performances of the used models.
-
-| Model                    | Configuration                              | F1 score --- own (%) | F1 score --- target (%) |
-| ------------------------ | ------------------------------------------ | -------------------- | ----------------------- |
-| BERT Fine-Tuned, Custom  | [YAML](configs/cnec_lr_5e5_12_epochs.yaml) | 75.48                | 71.04                   |
-
-Note:
-- **F1 score --- own** --- the performance on the testing subset of the data used for training
-- **F1 score --- target** --- the performance on the manually labelled subset of the target unlabeled data
+## Trained models and dataset
+The fine-tuned models and created dataset can be downloaded from the [public storage](https://vutbr-my.sharepoint.com/:f:/g/personal/xchoch09_vutbr_cz/EnovG2j8eK9Fit6kT3NUuO8Bxko2-tPwLVLA7goprsSsFw?e=JJNR7N).
 
 ## Usage
 
@@ -41,9 +32,15 @@ pip install torch==2.0.0 --extra-index-url https://download.pytorch.org/whl/cu11
 ```bash
 python ner_trainer.py --config <config.yaml>
 ```
-#### Classify
+
+#### Evaluation
 ```bash
-python text_classification.py --model <model_dir_path/>
+python eval_ner_model.py --model <model_dir_path/>
+```
+
+#### Inference
+```bash
+python inference_new_model.py --model <model_dir_path/>
 ```
 
 ### 2. Automatically
@@ -54,7 +51,12 @@ The running scripts are prepared for the MetaCentrum nodes.
 ./train.sh <branch_name> <config_file_name> <timeout>
 ```
 
-#### Classify
+#### Evaluation
 ```bash
-./test.sh <branch_name> <model_dir_path/> <timeout>
+./evaluation.sh <branch_name> <model_dir_path/> <timeout>
+```
+
+#### Inference
+```bash
+./interference_chot.sh <branch_name> <model_dir_path/> <timeout>
 ```
