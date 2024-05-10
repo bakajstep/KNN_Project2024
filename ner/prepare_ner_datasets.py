@@ -1,14 +1,8 @@
-# Author: Roman Janík
-# Script for preparing NER datasets in CoNLL format and converting them to Hugging Face datasets format.
-#
-
-
 import os
 
 import datasets
 
 
-# delete ner types media and numbers in addresses
 def lower_ner_tag_types(examples):
     for i, example_ner_tags in enumerate(examples["ner_tags"]):
         for j, ner_tag in enumerate(example_ner_tags):
@@ -17,9 +11,7 @@ def lower_ner_tag_types(examples):
     return examples
 
 
-# datasets_path = "../../../datasets"
 datasets_path = "converted_datasets"
-# TODO datasets path
 # cnec_dir = "cnec2.0_extended"
 cnec_dir = "cnec2.0"
 medival_dir = "medival"
@@ -89,7 +81,7 @@ medival_dataset = medival_dataset.cast_column("ner_tags", datasets.Sequence(
         ]
     )
 )
-                                        )
+                                              )
 medival_dataset = medival_dataset.map(lower_ner_tag_types, batched=True)
 
 # save Medival dataset in Hugging Face Datasets format (not tokenized)
