@@ -80,26 +80,41 @@ def main():
     label_names, test_dataset = prepare_datasets(config)
 
     metric_evaluator = evaluate.load("seqeval")
-    all_results = []
+    tag_keys = ['p', 'i', 'g', 't', 'o']
+    cumulative_results = {
+        'overall_accuracy': [],
+        'overall_f1': [],
+        'overall_precision': [],
+        'overall_recall': [],
+        **{tag: {'f1': [], 'precision': [], 'recall': []} for tag in tag_keys}
+    }
 
     test_dataset = test_dataset['test']
 
+    sentences = []
+    all_references = []
+    i = 0
+
     for example in test_dataset:
         text = " ".join(example['tokens'])
-        prediction_output = process_text([text], model1, model2, model3)
-        predictions = extract_tags_from_prediction(prediction_output[0])
-
-        # Získání anotací pro porovnání
+        sentences.append(text)
         references = [label_names[tag_idx] for tag_idx in example['ner_tags']]
+        all_references.append(references)
+        i += 1
+        if i > 100:
+            break
 
-        # Evaluační metrika
-        results = evaluate_predictions([predictions], [references], metric_evaluator)
-        all_results.append(results)
+    # Provedení hromadné predikce pro všechny shromážděné věty
+    prediction_outputs = process_text(sentences, model1, model2, model3)
 
-    # Průměrování výsledků
-    avg_results = np.mean(all_results)
-    print(
-        f"Average F1 Score: {avg_results['f1']}, Average Precision: {avg_results['precision']}, Average Recall: {avg_results['recall']}")
+    all_predictions = [extract_tags_from_prediction(output) for output in prediction_outputs]
+
+    all_predictions = [sublist for sublist in all_predictions if sublist]
+
+    # Hromadné vyhodnocení všech predikcí
+    results = evaluate_predictions(all_predictions, all_references, metric_evaluator)
+
+    print(f"Final Evaluation Results: {results}")
 
     end_time = time.monotonic()
     log_msg("Elapsed script time: {}\n".format(datetime.timedelta(seconds=end_time - start_time)))
