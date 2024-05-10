@@ -15,6 +15,7 @@ from yaml import safe_load
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', required=True, help='Training configuration file.')
+    # parser.add_argument('--results_csv', required=True, help='Results CSV file.')
     args = parser.parse_args()
     return args
 
@@ -188,48 +189,56 @@ def process_text(texts, token_classifier1, token_classifier2, token_classifier3)
             results = [result1, result2, result3]
             entities_info = {}
 
-            # Collecting all entities into a dictionary with a key like (start, end, word)
+            # Shromažďování všech entit do slovníku s klíčem jako (start, end, word)
             for idx, result in enumerate(results):
                 for entity in result:
-                    key = (entity['start'], entity['end'], entity['word'])
+                    key = (entity['start'], entity['end'], entity['word'].strip())
                     if key not in entities_info:
                         entities_info[key] = {'entity_groups': [], 'scores': []}
                     entities_info[key]['entity_groups'].append(entity['entity_group'])
                     entities_info[key]['scores'].append(entity['score'])
 
-            # Decision logic to evaluate the final entity and score
+            # Rozhodovací logika pro vyhodnocení finální entity a score
             final_results = []
             for key, info in entities_info.items():
                 entities = info['entity_groups']
                 scores = info['scores']
 
+                # Zjistíme, jaká entita se objevuje nejčastěji
                 if len(set(entities)) == 1:
-                    # All entities coincide
-                    final_entity = entities[0]
-                    final_score = np.mean(scores)
-                elif len(entities) == 3 and (
-                        entities.count(entities[0]) > 1 or entities.count(entities[1]) > 1):
-                    # The majority agrees
-                    if entities[0] == entities[1] or entities[0] == entities[2]:
+                    # Všechny modely souhlasí
+                    if len(entities) > 1:
                         final_entity = entities[0]
-                        final_score = np.mean(
-                            [scores[0], scores[1 if entities[0] == entities[1] else 2]])
-                    else:
-                        final_entity = entities[1]
-                        final_score = np.mean([scores[1], scores[2]])
+                        final_score = np.mean(scores)
+                    elif scores[0] > 0.7:
+                        final_entity = entities[0]
+                        final_score = scores[0]
                 else:
-                    # Selecting the entity with the highest score
-                    max_index = np.argmax(scores)
-                    final_entity = entities[max_index]
-                    final_score = scores[max_index]
+                    # Počítáme výskyty každé entity
+                    entity_counts = {entity: entities.count(entity) for entity in set(entities)}
+                    most_common_entity = max(entity_counts, key=entity_counts.get)
+                    count_most_common = entity_counts[most_common_entity]
 
-                final_results.append({
-                    'word': key[2],
-                    'entity': final_entity,
-                    'score': final_score,
-                    'start': key[0],
-                    'end': key[1]
-                })
+                    if count_most_common > 1:
+                        # Existuje majorita
+                        final_entity = most_common_entity
+                        # Průměrné skóre pro nejčastější entitu
+                        indices = [i for i, e in enumerate(entities) if e == most_common_entity]
+                        final_score = np.mean([scores[i] for i in indices])
+                    else:
+                        # Žádná majorita, bere se entita s nejvyšším skóre
+                        if max(scores) > 0.7:
+                            max_index = np.argmax(scores)
+                            final_entity = entities[max_index]
+                            final_score = scores[max_index]
+                if final_entity:
+                    final_results.append({
+                        'word': key[2],
+                        'entity': final_entity,
+                        'score': final_score,
+                        'start': key[0],
+                        'end': key[1]
+                    })
 
             words, positions = word_positions(sentence)
             conllu_output = convert_to_conllu(words, positions, final_results)
