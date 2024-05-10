@@ -93,7 +93,7 @@ def prepare_datasets(config: dict):
     concat_datasets = datasets.DatasetDict({
         "test": datasets.concatenate_datasets(
             [dataset[split] for dataset in raw_datasets.values() for split in dataset if
-             split in ['train', 'test', 'validation']]
+             split in ['test', 'validation']]
         )
     })
 
