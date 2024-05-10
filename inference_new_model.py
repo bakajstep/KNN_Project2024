@@ -15,7 +15,6 @@ from yaml import safe_load
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', required=True, help='Training configuration file.')
-    # parser.add_argument('--results_csv', required=True, help='Results CSV file.')
     args = parser.parse_args()
     return args
 
@@ -189,7 +188,7 @@ def process_text(texts, token_classifier1, token_classifier2, token_classifier3)
             results = [result1, result2, result3]
             entities_info = {}
 
-            # Shromažďování všech entit do slovníku s klíčem jako (start, end, word)
+            # Collecting all entities into a dictionary with a key like (start, end, word)
             for idx, result in enumerate(results):
                 for entity in result:
                     key = (entity['start'], entity['end'], entity['word'])
@@ -198,19 +197,19 @@ def process_text(texts, token_classifier1, token_classifier2, token_classifier3)
                     entities_info[key]['entity_groups'].append(entity['entity_group'])
                     entities_info[key]['scores'].append(entity['score'])
 
-            # Rozhodovací logika pro vyhodnocení finální entity a score
+            # Decision logic to evaluate the final entity and score
             final_results = []
             for key, info in entities_info.items():
                 entities = info['entity_groups']
                 scores = info['scores']
 
                 if len(set(entities)) == 1:
-                    # Všechny entity se shodují
+                    # All entities coincide
                     final_entity = entities[0]
                     final_score = np.mean(scores)
                 elif len(entities) == 3 and (
                         entities.count(entities[0]) > 1 or entities.count(entities[1]) > 1):
-                    # Majorita se shoduje
+                    # The majority agrees
                     if entities[0] == entities[1] or entities[0] == entities[2]:
                         final_entity = entities[0]
                         final_score = np.mean(
@@ -219,7 +218,7 @@ def process_text(texts, token_classifier1, token_classifier2, token_classifier3)
                         final_entity = entities[1]
                         final_score = np.mean([scores[1], scores[2]])
                 else:
-                    # Výběr entity s nejvyšším skóre
+                    # Selecting the entity with the highest score
                     max_index = np.argmax(scores)
                     final_entity = entities[max_index]
                     final_score = scores[max_index]

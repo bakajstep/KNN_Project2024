@@ -1,26 +1,7 @@
-# Author: Roman Janík
-# Script for local loading CNEC 2.0 CoNNL dataset and converting it to Hugging Face dataset format.
-#
-# This script if a modified version of conll2003/conll2003.py script by HuggingFace Datasets Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import os
 import datasets
 
-
 logger = datasets.logging.get_logger(__name__)
-
 
 _CITATION = """
 """
@@ -47,7 +28,8 @@ class Cnec2_0Conll(datasets.GeneratorBasedBuilder):
     """slavic dataset."""
 
     BUILDER_CONFIGS = [
-        Cnec2_0ConllConfig(name="slavic_bsnlp", version=datasets.Version("2.0.0"), description="slavic_bsnlp dataset"),
+        Cnec2_0ConllConfig(name="slavic_bsnlp", version=datasets.Version("2.0.0"),
+                           description="slavic_bsnlp dataset"),
     ]
 
     def _info(self):
@@ -59,7 +41,8 @@ class Cnec2_0Conll(datasets.GeneratorBasedBuilder):
                     "tokens": datasets.Sequence(datasets.Value("string")),
                     "ner_tags": datasets.Sequence(
                         datasets.features.ClassLabel(
-                            names=["O", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC", "B-PRO", "I-PRO", "B-EVT", "I-EVT"]
+                            names=["O", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC",
+                                   "B-PRO", "I-PRO", "B-EVT", "I-EVT"]
                         )
                     ),
                 }
@@ -69,7 +52,7 @@ class Cnec2_0Conll(datasets.GeneratorBasedBuilder):
             citation=_CITATION,
         )
 
-    #def _split_generators(self, dl_manager, dataset_path="../../../our_datasets/cnec2.0_extended"):
+    # def _split_generators(self, dl_manager, dataset_path="../../../our_datasets/cnec2.0_extended"):
     def _split_generators(self, dl_manager, dataset_path="our_datasets/slavic"):
         """Returns SplitGenerators."""
         data_files = {
@@ -79,9 +62,12 @@ class Cnec2_0Conll(datasets.GeneratorBasedBuilder):
         }
 
         return [
-            datasets.SplitGenerator(name=datasets.Split.TRAIN, gen_kwargs={"filepath": data_files["train"]}),
-            datasets.SplitGenerator(name=datasets.Split.TEST, gen_kwargs={"filepath": data_files["test"]}),
-            datasets.SplitGenerator(name=datasets.Split.VALIDATION, gen_kwargs={"filepath": data_files["validation"]}),
+            datasets.SplitGenerator(name=datasets.Split.TRAIN,
+                                    gen_kwargs={"filepath": data_files["train"]}),
+            datasets.SplitGenerator(name=datasets.Split.TEST,
+                                    gen_kwargs={"filepath": data_files["test"]}),
+            datasets.SplitGenerator(name=datasets.Split.VALIDATION,
+                                    gen_kwargs={"filepath": data_files["validation"]}),
         ]
 
     def _generate_examples(self, filepath):
