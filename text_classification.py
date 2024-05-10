@@ -9,11 +9,9 @@ from pagexml.helper.pagexml_helper import make_text_region_text
 from transformers import pipeline
 
 
-# https://github.com/roman-janik/diploma_thesis_program/blob/a23bfaa34d32f92cd17dc8b087ad97e9f5f0f3e6/train_ner_model.py#L28
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', required=True, help='Model directory path.')
-    # parser.add_argument('--results_csv', required=True, help='Results CSV file.')
     args = parser.parse_args()
     return args
 

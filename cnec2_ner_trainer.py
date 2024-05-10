@@ -381,7 +381,8 @@ def main():
     token_length = [len(tokenizer.encode(' '.join(conllu_to_string(i)), add_special_tokens=True))
                     for i in sentences_train]
 
-    maximum_token_length = int(max(token_length) * 0.5) if int(max(token_length) * 0.5) <= 512 else 512
+    maximum_token_length = int(max(token_length) * 0.5) if int(
+        max(token_length) * 0.5) <= 512 else 512
 
     log_msg("Token lengths")
     log_msg(f'Minimum  length: {min(token_length):,} tokens')
@@ -396,8 +397,10 @@ def main():
                                                     maximum_token_length)
     pt_input_ids = torch.stack(input_ids, dim=0)
 
-    train_dataset = dataset_from_sentences(label_map, sentences_train, tokenizer, maximum_token_length)
-    val_dataset = dataset_from_sentences(label_map, sentences_validate, tokenizer, maximum_token_length)
+    train_dataset = dataset_from_sentences(label_map, sentences_train, tokenizer,
+                                           maximum_token_length)
+    val_dataset = dataset_from_sentences(label_map, sentences_validate, tokenizer,
+                                         maximum_token_length)
 
     log_msg(f'{len(train_dataset):>5,} training samples')
     log_msg(f'{len(val_dataset):>5,} validation samples')
@@ -408,11 +411,14 @@ def main():
 
     train_dataloader = DataLoader(train_dataset, collate_fn=data_collator, shuffle=True,
                                   batch_size=batch_size)
-    validation_dataloader = DataLoader(val_dataset, collate_fn=data_collator, sampler=SequentialSampler(val_dataset),
+    validation_dataloader = DataLoader(val_dataset, collate_fn=data_collator,
+                                       sampler=SequentialSampler(val_dataset),
                                        batch_size=batch_size)
 
-    test_dataset = dataset_from_sentences(label_map, sentences_test, tokenizer, maximum_token_length)
-    test_prediction_dataloader = DataLoader(test_dataset, collate_fn=data_collator, sampler=SequentialSampler(test_dataset),
+    test_dataset = dataset_from_sentences(label_map, sentences_test, tokenizer,
+                                          maximum_token_length)
+    test_prediction_dataloader = DataLoader(test_dataset, collate_fn=data_collator,
+                                            sampler=SequentialSampler(test_dataset),
                                             batch_size=batch_size)
 
     id2label = {i: label for i, label in enumerate(label_names)}
@@ -526,7 +532,8 @@ def main():
             predictions_gathered = accelerator.gather(predictions)
             labels_gathered = accelerator.gather(labels)
 
-            true_predictions, true_labels = postprocess(predictions_gathered, labels_gathered, label_names)
+            true_predictions, true_labels = postprocess(predictions_gathered, labels_gathered,
+                                                        label_names)
 
             metric.add_batch(predictions=true_predictions, references=true_labels)
 
@@ -574,7 +581,8 @@ def main():
         predictions_gathered = accelerator.gather(predictions)
         labels_gathered = accelerator.gather(labels)
 
-        true_predictions, true_labels = postprocess(predictions_gathered, labels_gathered, label_names)
+        true_predictions, true_labels = postprocess(predictions_gathered, labels_gathered,
+                                                    label_names)
 
         metric.add_batch(predictions=true_predictions, references=true_labels)
 

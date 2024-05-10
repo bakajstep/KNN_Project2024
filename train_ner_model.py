@@ -1,12 +1,4 @@
-# Author: Roman Janík
-# Script for training baseline model from RobeCzech on CNEC 2.0 CoNNL and CHNEC 1.0 datasets.
-#
-# Partially taken over from Hugging Face Course Chapter 7 Token classification:
-# https://huggingface.co/course/en/chapter7/2?fw=pt
-#
-
 import argparse
-import csv
 import datetime
 import logging
 import os
@@ -23,13 +15,9 @@ from tqdm.auto import tqdm
 from yaml import safe_load
 
 
-# from torch.utils.tensorboard import SummaryWriter
-
-
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', required=True, help='Training configuration file.')
-    # parser.add_argument('--results_csv', required=True, help='Results CSV file.')
     args = parser.parse_args()
     return args
 
@@ -81,7 +69,7 @@ def align_labels_with_tokens(labels, word_ids):
 
     return new_labels
 
-# TODO nejspise upravit prepare datasets na nase, co potrebujem
+
 def prepare_datasets(config: dict):
     raw_datasets = {}
     for key, value in config["datasets"].items():
@@ -139,10 +127,7 @@ def main():
     start_time = time.monotonic()
     output_dir = "../results"
     model_dir = "../results/model"
-    log_dir = "../results/logs"
     args = parse_arguments()
-
-    datasets_dir = "../results/datasets"
 
     # Load config file
     with open(args.config, 'r') as config_file:
@@ -155,9 +140,6 @@ def main():
     log_msg("Experiment summary:\n")
     log_summary(args.config, config)
     log_msg("-" * 80 + "\n")
-
-    # Init tensorboard writer
-    # writer = SummaryWriter(log_dir)
 
     tokenizer, label_names, test_datasets, tokenized_datasets = prepare_datasets(config)
     data_collator = transformers.DataCollatorForTokenClassification(tokenizer=tokenizer)
@@ -184,24 +166,6 @@ def main():
     )
 
     metric = evaluate.load("seqeval")
-    """
-    def compute_metrics(eval_preds):
-        logits, labels = eval_preds
-        predictions = np.argmax(logits, axis=-1)
-
-        # Remove ignored index (special tokens) and convert to labels
-        true_labels = [[label_names[lb] for lb in label if lb != -100] for label in labels]
-        true_predictions = [
-            [label_names[pr] for (pr, lb) in zip(prediction, label) if lb != -100]
-            for prediction, label in zip(predictions, labels)
-        ]
-        all_metrics = metric.compute(predictions=true_predictions, references=true_labels)
-        return {
-            "precision": all_metrics["overall_precision"],
-            "recall": all_metrics["overall_recall"],
-            "f1": all_metrics["overall_f1"],
-            "accuracy": all_metrics["overall_accuracy"],
-        } """
 
     cf_optimizer = config["training"]["optimizer"]
     optimizer = torch.optim.AdamW(model.parameters(), lr=cf_optimizer["learning_rate"],
@@ -247,11 +211,8 @@ def main():
         for i, batch in enumerate(train_dataloader):
             outputs = model(**batch)
             loss = outputs.loss
-            # if i % 100 == 99:
-            #    #writer.add_scalar("Loss/train", loss, epoch)
             accelerator.backward(loss)
 
-            # writer.add_scalar("Learning_rate/train", lr_scheduler.get_last_lr()[0], step)
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
@@ -312,9 +273,6 @@ def main():
     # Test set evaluation
     log_msg("Test set evaluation:")
     task_evaluator = evaluate.evaluator("token-classification")
-    # test_model = transformers.AutoModelForTokenClassification.from_pretrained(
-    #     os.path.join(output_dir, "model")
-    # )
 
     test_results = {}
     for (dataset_name, test_dataset) in test_datasets.items():
@@ -326,30 +284,6 @@ def main():
                                    test_result_df[
                                        ["overall_f1", "overall_accuracy", "overall_precision",
                                         "overall_recall"]]))
-
-    # Log to CSV results file
-    """ exp_name = os.path.splitext(os.path.basename(args.config))[0]
-    dtss = "_".join(config["datasets"].keys())
-    test_cnec_f1 = "{:.6f}".format(test_results["cnec"]["overall_f1"]) if "cnec" in test_results else None
-    test_chnec_f1 = "{:.6f}".format(test_results["chnec"]["overall_f1"]) if "chnec" in test_results else None
-    test_poner_f1 = "{:.6f}".format(test_results["poner"]["overall_f1"]) if "poner" in test_results else None
-    try:
-        with open(args.results_csv, encoding="utf-8") as f:
-            f.read()
-    except FileNotFoundError:
-        with open(args.results_csv, "w", encoding="utf-8") as exp_f:
-            exp_res_wr = csv.writer(exp_f, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            exp_res_wr.writerow(["exp_name", "model_name", "datasets", "num_epochs",
-                                 "val_f1", "cnec_test_f1", "chnec_test_f1", "poner_test_f1"])
-            exp_res_wr.writerow([exp_name, config["model"]["name"], dtss,
-                                 config["training"]["num_train_epochs"], "{:.6f}".format(results["overall_f1"]),
-                                 test_cnec_f1, test_chnec_f1, test_poner_f1])
-    else:
-        with open(args.results_csv, "a", encoding="utf-8") as exp_f:
-            exp_res_wr = csv.writer(exp_f, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            exp_res_wr.writerow([exp_name, config["model"]["name"], dtss,
-                                 config["training"]["num_train_epochs"], "{:.6f}".format(results["overall_f1"]),
-                                 test_cnec_f1, test_chnec_f1, test_poner_f1]) """
 
     end_time = time.monotonic()
     log_msg("Elapsed script time: {}\n".format(datetime.timedelta(seconds=end_time - start_time)))

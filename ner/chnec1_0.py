@@ -1,26 +1,3 @@
-# Author: Roman Janík
-# Script for local loading CHNEC 1.0 datasets and converting it to Hugging Face dataset format.
-#
-# This script if a modified version of conll2003/conll2003.py script by HuggingFace Datasets Authors.
-#
-# NOTICE: There is a wrong annotation on line 16853 in train split (CHNEC_v0.1_train.conll):
-# "Biůrger	DE	_	I-p"
-# - lemma (2.) and language (3.) columns are swapped! This will cause an error during loading,
-# needs to be corrected before running loading script!
-#
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import os
 import datasets
 
