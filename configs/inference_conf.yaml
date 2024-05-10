@@ -1,12 +1,21 @@
 desc: "Script for running the inferece."
 
-model:
-  name: "BERT"
-  desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
-  path: "../models/xlm_roberta_base/model"
+models:
+  model1:
+    name: "BERT"
+    desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
+    path: "../models/robeczech_5_epochs-3h/model/"
+  model2:
+    name: "BERT"
+    desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
+    path: "../models/robeczech_10_epochs-3h/model/"
+  model3:
+    name: "BERT"
+    desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
+    path: "../models/robeczech_15_epochs-3h/model/"
 
-datasets:
-  cnec2:
-    name: "CNEC 2.0 CoNLL"
+raw_text:
+  pero:
+    name: "Pero"
     desc: "Czech Named Entity Corpus 2.0 CoNNL dataset. General-language Czech NER dataset."
-    path: "../datasets/cnec2.0"
+    path: "../raw_text/2023-11-23/"
