@@ -8,7 +8,6 @@ import re
 import nltk
 import numpy as np
 import pandas as pd
-import spacy
 from transformers import pipeline
 from yaml import safe_load
 

@@ -2,20 +2,20 @@ desc: "Script for running the inferece."
 
 models:
   model1:
-    name: "BERT"
-    desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
-    path: "../models/robeczech_5_epochs-3h/model/"
+    name: "Fernet"
+    desc: "Fine-tuned fernet model with fernetc5_15_epochs_noslavic configuration"
+    path: "../models/fernet15_nonslavic/model/"
   model2:
-    name: "BERT"
-    desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
-    path: "../models/robeczech_10_epochs-3h/model/"
+    name: "Robeczech"
+    desc: "Fine-tuned robeczech model with robeczech_15_epochs_noslavic configuration"
+    path: "../models/robeczech15_noslavic/model/"
   model3:
-    name: "BERT"
-    desc: "BERT - Model-BiDirectional Encoder Decoder Transformer"
-    path: "../models/robeczech_15_epochs-3h/model/"
+    name: "Xmlrobertabase"
+    desc: "Fine-tuned xmlrobertabase model with xmlrobertabase_15_epochs_noslavic configuration"
+    path: "../models/xmlrobertabase15_nonslavic/model/"
 
 raw_text:
   pero:
     name: "Pero"
-    desc: "Czech Named Entity Corpus 2.0 CoNNL dataset. General-language Czech NER dataset."
-    path: "../raw_text/2023-11-23/"
+    desc: "Text from pero OCR"
+    path: "../raw_text/2023-11-23_/"
